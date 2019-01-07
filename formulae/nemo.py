@@ -95,6 +95,7 @@ class NemoFormulae(Nemo):
         self.app.register_error_handler(500, e_internal_error)
         self.app.before_request(self.before_request)
         self.app.after_request(self.after_request)
+        print(self.open_texts)
 
     def get_all_corpora(self):
         """ A convenience function to return all sub-corpora in all collections
