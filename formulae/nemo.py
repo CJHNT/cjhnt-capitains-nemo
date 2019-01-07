@@ -73,7 +73,7 @@ class NemoFormulae(Nemo):
     OPEN_NOTES = []
 
     LANGUAGE_MAPPING = {"lat": _l('Latein'), "deu": _l("Deutsch"), "fre": _l("Französisch"),
-                        "eng": _l("Englisch"), "grc": _l("Griechisch")}
+                        "eng": _l("Englisch"), "grc": _l("Griechisch"), "mul": _l("Verschiedene")}
 
     BIBO = Namespace('http://bibliotek-o.org/1.0/ontology/')
 
