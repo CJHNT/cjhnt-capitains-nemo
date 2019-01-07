@@ -65,10 +65,7 @@ class NemoFormulae(Nemo):
         # "r_add_text_collections", "r_add_text_collection", "r_corpus", "r_add_text_corpus"
     ]
 
-    OPEN_COLLECTIONS = ['urn:cts:formulae:buenden', 'urn:cts:formulae:passau', 'urn:cts:formulae:schaeftlarn',
-                        'urn:cts:formulae:stgallen','urn:cts:formulae:zuerich', 'urn:cts:formulae:elexicon',
-                        'urn:cts:formulae:mondsee', 'urn:cts:formulae:regensburg', 'urn:cts:formulae:salzburg',
-                        'urn:cts:formulae:werden', 'urn:cts:formulae:rheinisch'] #, 'urn:cts:formulae:andecavensis.form001'] + ['urn:cts:formulae:andecavensis']
+    OPEN_COLLECTIONS = ['urn:cts:formulae:nt'] #, 'urn:cts:formulae:andecavensis.form001'] + ['urn:cts:formulae:andecavensis']
 
     HALF_OPEN_COLLECTIONS = ['urn:cts:formulae:mondsee', 'urn:cts:formulae:regensburg', 'urn:cts:formulae:salzburg',
                              'urn:cts:formulae:werden', 'urn:cts:formulae:rheinisch']
@@ -76,7 +73,7 @@ class NemoFormulae(Nemo):
     OPEN_NOTES = []
 
     LANGUAGE_MAPPING = {"lat": _l('Latein'), "deu": _l("Deutsch"), "fre": _l("Französisch"),
-                        "eng": _l("Englisch")}
+                        "eng": _l("Englisch"), "grc": _l("Griechisch")}
 
     BIBO = Namespace('http://bibliotek-o.org/1.0/ontology/')
 
