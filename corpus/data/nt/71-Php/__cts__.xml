@@ -1,0 +1,7 @@
+<ti:work xmlns:ti="http://chs.harvard.edu/xmlns/cts" xmlns:dct="http://purl.org/dc/terms/" xmlns:cpt="http://purl.org/capitains/ns/1.0#" xmlns:dc="http://purl.org/dc/elements/1.1/" groupUrn="urn:cts:cjhnt:nt" urn="urn:cts:cjhnt:nt.71-Php" xml:lang="lat">
+   <ti:title xml:lang="deu">Php</ti:title>
+   <ti:edition workUrn="urn:cts:cjhnt:nt.71-Php" urn="urn:cts:cjhnt:nt.71-Php.grc001">
+      <ti:label xml:lang="deu">Php</ti:label>
+      <ti:description xml:lang="deu">Php</ti:description>
+   </ti:edition>
+</ti:work>

@@ -1,0 +1,7 @@
+<ti:work xmlns:ti="http://chs.harvard.edu/xmlns/cts" xmlns:dct="http://purl.org/dc/terms/" xmlns:cpt="http://purl.org/capitains/ns/1.0#" xmlns:dc="http://purl.org/dc/elements/1.1/" groupUrn="urn:cts:cjhnt:nt" urn="urn:cts:cjhnt:nt.67-1Co" xml:lang="lat">
+   <ti:title xml:lang="deu">1Co</ti:title>
+   <ti:edition workUrn="urn:cts:cjhnt:nt.67-1Co" urn="urn:cts:cjhnt:nt.67-1Co.grc001">
+      <ti:label xml:lang="deu">1Co</ti:label>
+      <ti:description xml:lang="deu">1Co</ti:description>
+   </ti:edition>
+</ti:work>
