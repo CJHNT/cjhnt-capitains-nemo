@@ -19,13 +19,13 @@
             {% endif %}
             </li>
             <li class="nav-item active">
-                <a class="nav-link nav" href="{{url_for('InstanceNemo.r_collection', objectId='formulae_collection')}}">{{ _('Formeln') }}</a>
+                <a class="nav-link nav" href="{{url_for('InstanceNemo.r_collection', objectId='new_testament')}}">{{ _('Neues Testament') }}</a>
             </li>
             <li class="nav-item active">
-                <a class="nav-link" href="{{url_for('InstanceNemo.r_collection', objectId='lexicon_entries', )}}">{{ _('Lexikon') }}</a>
+                <a class="nav-link" href="{{url_for('InstanceNemo.r_collection', objectId='jewish_texts', )}}">{{ _('Jüdische Texte') }}</a>
             </li>
             <li class="nav-item active">
-                <a class="nav-link" href="{{url_for('InstanceNemo.r_collection', objectId='other_collection')}}">{{ _('Andere Texte') }}</a>
+                <a class="nav-link" href="{{url_for('InstanceNemo.r_collection', objectId='commentaries')}}">{{ _('Kommentare') }}</a>
             </li>            
         </ul>
         {% include "search::search_box.html" %}
