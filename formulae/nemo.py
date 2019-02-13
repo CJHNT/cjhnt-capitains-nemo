@@ -65,10 +65,10 @@ class NemoFormulae(Nemo):
         # "r_add_text_collections", "r_add_text_collection", "r_corpus", "r_add_text_corpus"
     ]
 
-    OPEN_COLLECTIONS = ['urn:cts:cjhnt:nt', 'urn:cts:greekLit:tlg0527', 'urn:cts:greekLit:tlg0018'] #, 'urn:cts:formulae:andecavensis.form001'] + ['urn:cts:formulae:andecavensis']
+    OPEN_COLLECTIONS = ['urn:cts:cjhnt:nt', 'urn:cts:greekLit:tlg0527', 'urn:cts:greekLit:tlg0018',
+                        'urn:cts:cjhnt:commentary']
 
-    HALF_OPEN_COLLECTIONS = ['urn:cts:formulae:mondsee', 'urn:cts:formulae:regensburg', 'urn:cts:formulae:salzburg',
-                             'urn:cts:formulae:werden', 'urn:cts:formulae:rheinisch']
+    HALF_OPEN_COLLECTIONS = []
 
     OPEN_NOTES = []
 
@@ -76,10 +76,6 @@ class NemoFormulae(Nemo):
                         "eng": _l("Englisch"), "grc": _l("Griechisch"), "mul": _l("Verschiedene")}
 
     BIBO = Namespace('http://bibliotek-o.org/1.0/ontology/')
-
-    SALZBURG_MAPPING = {'a': 'Codex Odalberti', 'b': 'Codex Fridarici', 'c': 'Codex Hartuuici', 'd': 'Codex Tietmari II',
-                        'e': 'Codex Balduuini', 'bn': 'Breves Notitiae', 'na': 'Notitia Arnonis',
-                        'bna': 'Breves Notitiae Anhang'}
 
     def __init__(self, *args, **kwargs):
         if "pdf_folder" in kwargs:
@@ -471,6 +467,43 @@ class NemoFormulae(Nemo):
         :rtype: {str: Any}
         """
         ids = objectIds.split('+')
+        translations = {}
+        for i in ids:
+            p = self.resolver.getMetadata(self.resolver.getMetadata(i).parent.id)
+            translations[i] = [m for m in p.readableDescendants if m.id not in ids]
+        passage_data = {'template': 'main::multipassage.html', 'objects': [], "translation": translations}
+        subrefers = subreferences.split('+')
+        result_sents = request.args.get('result_sents')
+        for i, id in enumerate(ids):
+            if self.check_project_team() is True or id in self.open_texts:
+                if subrefers[i] in ["all", 'first']:
+                    subref = self.get_reffs(id)[0][0]
+                else:
+                    subref = subrefers[i]
+                d = self.r_passage(id, subref, lang=lang)
+                del d['template']
+                if result_sents:
+                    d['text_passage'] = self.highlight_found_sents(d['text_passage'],
+                                                                   self.convert_result_sents(result_sents))
+                passage_data['objects'].append(d)
+        if len(ids) > len(passage_data['objects']):
+            flash(_('Mindestens ein Text, den Sie anzeigen möchten, ist nicht verfügbar.'))
+        return passage_data
+
+    def r_commentary_view(self, nt_book, subreference, lang=None, result_sents=''):
+        """ Retrieve the appropriate NT passage as well as the commentary section(s) that go with it
+
+        :param nt_book: the id of the NT book
+        :type nt_book: str
+        :param lang: Lang in which to express main data
+        :type lang: str
+        :param subreference: portion (e.g., chapter.verse) of the NT book
+        :type subreference: str
+        :param result_sents: The list of sentences from elasticsearch results
+        :type result_sents: str
+        :return: Template, collections metadata and Markup object representing the text
+        :rtype: {str: Any}
+        """
         translations = {}
         for i in ids:
             p = self.resolver.getMetadata(self.resolver.getMetadata(i).parent.id)

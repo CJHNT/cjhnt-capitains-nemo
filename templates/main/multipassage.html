@@ -38,9 +38,9 @@
             <div class="dropdown-divider"></div>
         {% endif %}
         <span class="dropdown-item-text">{{ _('einem anderen Text aus:') }}</span>
-        <a class="dropdown-item" href="{{url_for('InstanceNemo.r_add_text_collection', objectId='formulae_collection', objectIds=prev_texts, reffs=prev_reffs)}}">- <span class="text-primary">{{ _('Formeln') }}</span></a>
-        <a class="dropdown-item" href="{{url_for('InstanceNemo.r_add_text_collection', objectId='lexicon_entries', objectIds=prev_texts, reffs=prev_reffs)}}">- <span class="text-primary">{{ _('Lexikon') }}</span></a>
-        <a class="dropdown-item" href="{{url_for('InstanceNemo.r_add_text_collection', objectId='other_collection', objectIds=prev_texts, reffs=prev_reffs)}}">- <span class="text-primary">{{ _('Andere Texte') }}</span></a>
+        <a class="dropdown-item" href="{{url_for('InstanceNemo.r_add_text_collection', objectId='new_testament', objectIds=prev_texts, reffs=prev_reffs)}}">- <span class="text-primary">{{ _('Neuem Testament') }}</span></a>
+        <a class="dropdown-item" href="{{url_for('InstanceNemo.r_add_text_collection', objectId='jewish_texts', objectIds=prev_texts, reffs=prev_reffs)}}">- <span class="text-primary">{{ _('Jüdischen Texten') }}</span></a>
+        <a class="dropdown-item" href="{{url_for('InstanceNemo.r_add_text_collection', objectId='commentaries', objectIds=prev_texts, reffs=prev_reffs)}}">- <span class="text-primary">{{ _('Kommentare') }}</span></a>
     </div>
 </div>
 {% endmacro %}
@@ -73,7 +73,7 @@
                 {{ navigation }}
             </nav> -->
             
-            <div class="row">
+            <div class="row" id="nt-text">
             {% for text in objects %}
             {%set all_texts = objects|map(attribute='objectId')|list %}
             {%set all_reffs = objects|map(attribute='subreference')|list %}

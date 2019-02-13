@@ -1,0 +1,8 @@
+<ti:work xmlns:ti="http://chs.harvard.edu/xmlns/cts" groupUrn="urn:cts:cjhnt:commentary" xml:lang="grc" urn="urn:cts:cjhnt:commentary.tlg0042006">
+  <ti:title xml:lang="lat">Fragmenta In Evangelium Joannis (In Catenis)</ti:title>
+  <ti:edition urn="urn:cts:cjhnt:commentary.tlg0042006.opp-grc1" workUrn="urn:cts:cjhnt:commentary.tlg0042006">
+    <ti:label xml:lang="lat">Fragmenta In Evangelium Joannis (In Catenis)</ti:label>
+    <ti:description xml:lang="mul">Origenes, Fragmenta In Evangelium Joannis (In Catenis),
+    Origenes Werke Vol 4, Preuschen, 1903</ti:description>
+  </ti:edition>
+</ti:work>
