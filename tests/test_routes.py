@@ -4,6 +4,7 @@ from formulae import create_app, db
 from formulae.nemo import NemoFormulae
 from formulae.models import User
 from formulae.search.Search import advanced_query_index, query_index, suggest_composition_places, build_sort_list
+from formulae.dispatcher_builder import organizer
 import flask_testing
 from formulae.search.forms import AdvancedSearchForm, SearchForm
 from formulae.auth.forms import LoginForm, PasswordChangeForm, LanguageChangeForm, ResetPasswordForm, \
@@ -22,7 +23,7 @@ from flask import Markup
 class TestConfig(Config):
     TESTING = True
     SQLALCHEMY_DATABASE_URI = 'sqlite://'
-    CORPUS_FOLDERS = ["tests/test_data/formulae"]
+    CORPUS_FOLDERS = ["tests/test_data/cjhnt"]
     WTF_CSRF_ENABLED = False
 
 
@@ -30,7 +31,8 @@ class Formulae_Testing(flask_testing.TestCase):
     def create_app(self):
 
         app = create_app(TestConfig)
-        self.nemo = NemoFormulae(name="InstanceNemo", resolver=NautilusCTSResolver(app.config['CORPUS_FOLDERS']),
+        self.nemo = NemoFormulae(name="InstanceNemo", resolver=NautilusCTSResolver(app.config['CORPUS_FOLDERS'],
+                                                                                   dispatcher=organizer),
                                  app=app, base_url="", transform={"default": "components/epidoc.xsl"},
                                  templates={"main": "templates/main",
                                             "errors": "templates/errors",
@@ -71,38 +73,25 @@ class TestIndividualRoutes(Formulae_Testing):
             self.assertTemplateUsed('auth::login.html')
             c.get('/collections', follow_redirects=True)
             self.assertTemplateUsed('main::collection.html')
-            c.get('/corpus/urn:cts:formulae:stgallen', follow_redirects=True)
+            c.get('/corpus/urn:cts:greekLit:tlg0527', follow_redirects=True)
             self.assertTemplateUsed('main::sub_collection.html')
-            c.get('/corpus/urn:cts:formulae:salzburg', follow_redirects=True)
-            self.assertTemplateUsed('main::salzburg_collection.html')
-            # r_references does not work right now
+            c.get('/corpus/urn:cts:cjhnt:nt', follow_redirects=True)
+            self.assertTemplateUsed('main::sub_collection.html')
+            # r_references does not work right now.
             # c.get('/text/urn:cts:formulae:stgallen.wartmann0001.lat001/references', follow_redirects=True)
             # self.assertTemplateUsed('main::references.html')
-            c.get('/texts/urn:cts:formulae:stgallen.wartmann0001.lat001+urn:cts:formulae:salzburg.hauthaler-a0001.lat001/passage/1+all', follow_redirects=True)
+            c.get('/texts/urn:cts:cjhnt:nt.86-Jud.grc001+urn:cts:cjhnt:commentary.tlg0042006.opp-grc1/passage/1+1', follow_redirects=True)
             self.assertTemplateUsed('main::multipassage.html')
             # Check for backwards compatibility of URLs
-            c.get('/texts/urn:cts:formulae:stgallen.wartmann0001.lat001+urn:cts:formulae:salzburg.hauthaler-a0001.lat001/passage/1+first', follow_redirects=True)
+            c.get('/texts/urn:cts:cjhnt:nt.86-Jud.grc001+urn:cts:cjhnt:commentary.tlg0042006.opp-grc1/passage/1+first', follow_redirects=True)
             self.assertTemplateUsed('main::multipassage.html')
-            c.get('/add_collections/urn:cts:formulae:stgallen.wartmann0001.lat001/1', follow_redirects=True)
+            c.get('/add_collections/urn:cts:cjhnt:nt.86-Jud.grc001/1', follow_redirects=True)
             self.assertTemplateUsed('main::collection.html')
-            c.get('/add_text/urn:cts:formulae:andecavensis/urn:cts:formulae:stgallen.wartmann0001.lat001/1', follow_redirects=True)
+            c.get('/add_text/urn:cts:cjhnt:nt/urn:cts:cjhnt:nt.86-Jud.grc001/1', follow_redirects=True)
             self.assertTemplateUsed('main::sub_collection.html')
-            c.get('/lexicon/urn:cts:formulae:elexicon.abbas_abbatissa.deu001', follow_redirects=True)
-            self.assertTemplateUsed('main::lexicon_modal.html')
-            c.get('/add_text/urn:cts:formulae:elexicon/urn:cts:formulae:stgallen.wartmann0001.lat001/1', follow_redirects=True)
-            self.assertTemplateUsed('main::elex_collection.html')
-            # An non-authenicated user who surfs to the login page should not be redirected
-            c.get('/auth/login', follow_redirects=True)
-            self.assertTemplateUsed('auth::login.html')
-            # The following tests are to make sure that non-open texts are not available to non-project members
-            c.get('/add_text/urn:cts:formulae:raetien/urn:cts:formulae:stgallen.wartmann0001.lat001/1', follow_redirects=True)
-            self.assertMessageFlashed(_('Diese Sammlung steht unter Copyright und darf hier nicht gezeigt werden.'))
-            c.get('/corpus/urn:cts:formulae:raetien', follow_redirects=True)
-            self.assertMessageFlashed(_('Diese Sammlung steht unter Copyright und darf hier nicht gezeigt werden.'))
-            c.get('/texts/urn:cts:formulae:raetien.erhart0001.lat001+urn:cts:formulae:andecavensis.form001.lat001/passage/1+all', follow_redirects=True)
-            self.assertMessageFlashed(_('Mindestens ein Text, den Sie anzeigen möchten, ist nicht verfügbar.'))
-            c.get('/texts/urn:cts:formulae:raetien.erhart0001.lat001/passage/1', follow_redirects=True)
-            self.assertMessageFlashed(_('Mindestens ein Text, den Sie anzeigen möchten, ist nicht verfügbar.'))
+            c.get('/texts/urn:cts:cjhnt:nt.86-Jud.grc001+urn:cts:cjhnt:commentary.tlg0042006.opp-grc1/passage/1+145', follow_redirects=True)
+            self.assertMessageFlashed('Fragmenta In Evangelium Joannis (In Catenis).145 was not found. The whole text is shown here.')
+            self.assertTemplateUsed('main::multipassage.html')
 
     def test_authorized_project_member(self):
         """ Make sure that all routes are open to project members"""
@@ -117,42 +106,27 @@ class TestIndividualRoutes(Formulae_Testing):
             self.assertTemplateUsed('auth::login.html')
             c.get('/collections', follow_redirects=True)
             self.assertTemplateUsed('main::collection.html')
-            c.get('/corpus/urn:cts:formulae:stgallen', follow_redirects=True)
+            c.get('/corpus/urn:cts:greekLit:tlg0527', follow_redirects=True)
             self.assertTemplateUsed('main::sub_collection.html')
-            c.get('/corpus/urn:cts:formulae:salzburg', follow_redirects=True)
-            self.assertTemplateUsed('main::salzburg_collection.html')
-            c.get('/corpus/urn:cts:formulae:elexicon', follow_redirects=True)
-            self.assertTemplateUsed('main::elex_collection.html')
+            c.get('/corpus/urn:cts:cjhnt:nt', follow_redirects=True)
+            self.assertTemplateUsed('main::sub_collection.html')
             # r_references does not work right now.
             # c.get('/text/urn:cts:formulae:stgallen.wartmann0001.lat001/references', follow_redirects=True)
             # self.assertTemplateUsed('main::references.html')
-            c.get('/texts/urn:cts:formulae:stgallen.wartmann0001.lat001+urn:cts:formulae:andecavensis.form001.lat001/passage/1+all', follow_redirects=True)
+            c.get('/texts/urn:cts:cjhnt:nt.86-Jud.grc001+urn:cts:cjhnt:commentary.tlg0042006.opp-grc1/passage/1+1', follow_redirects=True)
             self.assertTemplateUsed('main::multipassage.html')
             # Check for backwards compatibility of URLs
-            c.get('/texts/urn:cts:formulae:stgallen.wartmann0001.lat001+urn:cts:formulae:andecavensis.form001.lat001/passage/1+first', follow_redirects=True)
+            c.get('/texts/urn:cts:cjhnt:nt.86-Jud.grc001+urn:cts:cjhnt:commentary.tlg0042006.opp-grc1/passage/1+first', follow_redirects=True)
             self.assertTemplateUsed('main::multipassage.html')
-            c.get('/add_collections/urn:cts:formulae:stgallen.wartmann0001.lat001/1', follow_redirects=True)
+            c.get('/add_collections/urn:cts:cjhnt:nt.86-Jud.grc001/1', follow_redirects=True)
             self.assertTemplateUsed('main::collection.html')
-            c.get('/add_text/urn:cts:formulae:andecavensis/urn:cts:formulae:stgallen.wartmann0001.lat001/1', follow_redirects=True)
+            c.get('/add_text/urn:cts:cjhnt:nt/urn:cts:cjhnt:nt.86-Jud.grc001/1', follow_redirects=True)
             self.assertTemplateUsed('main::sub_collection.html')
-            c.get('/lexicon/urn:cts:formulae:elexicon.abbas_abbatissa.deu001', follow_redirects=True)
-            self.assertTemplateUsed('main::lexicon_modal.html')
-            c.get('/add_text/urn:cts:formulae:elexicon/urn:cts:formulae:stgallen.wartmann0001.lat001/1', follow_redirects=True)
-            self.assertTemplateUsed('main::elex_collection.html')
             # An authenicated user who surfs to the login page should be redirected to index
             c.get('/auth/login', follow_redirects=True)
             self.assertTemplateUsed('main::index.html')
-            # The following tests are to make sure that non-open texts are available to project members
-            c.get('/add_text/urn:cts:formulae:raetien/urn:cts:formulae:stgallen.wartmann0001.lat001/1', follow_redirects=True)
-            self.assertTemplateUsed('main::sub_collection.html')
-            c.get('/corpus/urn:cts:formulae:raetien', follow_redirects=True)
-            self.assertTemplateUsed('main::sub_collection.html')
-            c.get('/texts/urn:cts:formulae:raetien.erhart0001.lat001+urn:cts:formulae:andecavensis.form001.lat001/passage/1+all', follow_redirects=True)
-            self.assertTemplateUsed('main::multipassage.html')
-            c.get('/texts/urn:cts:formulae:raetien.erhart0001.lat001/passage/1', follow_redirects=True)
-            self.assertTemplateUsed('main::multipassage.html')
-            c.get('/texts/urn:cts:formulae:raetien.erhart0001.lat001+urn:cts:formulae:andecavensis.form001.lat001/passage/1+12', follow_redirects=True)
-            self.assertMessageFlashed('FORMULA ANDECAVENSIS 1.12 wurde nicht gefunden. Der ganze Text wird angezeigt.')
+            c.get('/texts/urn:cts:cjhnt:nt.86-Jud.grc001+urn:cts:cjhnt:commentary.tlg0042006.opp-grc1/passage/1+145', follow_redirects=True)
+            self.assertMessageFlashed('Fragmenta In Evangelium Joannis (In Catenis).145 wurde nicht gefunden. Der ganze Text wird angezeigt.')
             self.assertTemplateUsed('main::multipassage.html')
 
     def test_authorized_normal_user(self):
@@ -168,40 +142,28 @@ class TestIndividualRoutes(Formulae_Testing):
             self.assertTemplateUsed('auth::login.html')
             c.get('/collections', follow_redirects=True)
             self.assertTemplateUsed('main::collection.html')
-            c.get('/corpus/urn:cts:formulae:stgallen', follow_redirects=True)
+            c.get('/corpus/urn:cts:greekLit:tlg0527', follow_redirects=True)
             self.assertTemplateUsed('main::sub_collection.html')
-            c.get('/corpus/urn:cts:formulae:salzburg', follow_redirects=True)
-            self.assertTemplateUsed('main::salzburg_collection.html')
-            c.get('/corpus/urn:cts:formulae:elexicon', follow_redirects=True)
-            self.assertTemplateUsed('main::elex_collection.html')
+            c.get('/corpus/urn:cts:cjhnt:nt', follow_redirects=True)
+            self.assertTemplateUsed('main::sub_collection.html')
             # r_references does not work right now.
             # c.get('/text/urn:cts:formulae:stgallen.wartmann0001.lat001/references', follow_redirects=True)
             # self.assertTemplateUsed('main::references.html')
-            c.get('/texts/urn:cts:formulae:stgallen.wartmann0001.lat001+urn:cts:formulae:andecavensis.form001.lat001/passage/1+all', follow_redirects=True)
+            c.get('/texts/urn:cts:cjhnt:nt.86-Jud.grc001+urn:cts:cjhnt:commentary.tlg0042006.opp-grc1/passage/1+1', follow_redirects=True)
             self.assertTemplateUsed('main::multipassage.html')
             # Check for backwards compatibility of URLs
-            c.get('/texts/urn:cts:formulae:stgallen.wartmann0001.lat001+urn:cts:formulae:salzburg.hauthaler-a0001.lat001/passage/1+first', follow_redirects=True)
+            c.get('/texts/urn:cts:cjhnt:nt.86-Jud.grc001+urn:cts:cjhnt:commentary.tlg0042006.opp-grc1/passage/1+first', follow_redirects=True)
             self.assertTemplateUsed('main::multipassage.html')
-            c.get('/add_collections/urn:cts:formulae:stgallen.wartmann0001.lat001/1', follow_redirects=True)
+            c.get('/add_collections/urn:cts:cjhnt:nt.86-Jud.grc001/1', follow_redirects=True)
             self.assertTemplateUsed('main::collection.html')
-            c.get('/add_text/urn:cts:formulae:andecavensis/urn:cts:formulae:stgallen.wartmann0001.lat001/1', follow_redirects=True)
+            c.get('/add_text/urn:cts:cjhnt:nt/urn:cts:cjhnt:nt.86-Jud.grc001/1', follow_redirects=True)
             self.assertTemplateUsed('main::sub_collection.html')
-            c.get('/lexicon/urn:cts:formulae:elexicon.abbas_abbatissa.deu001', follow_redirects=True)
-            self.assertTemplateUsed('main::lexicon_modal.html')
-            c.get('/add_text/urn:cts:formulae:elexicon/urn:cts:formulae:stgallen.wartmann0001.lat001/1', follow_redirects=True)
-            self.assertTemplateUsed('main::elex_collection.html')
             # An authenicated user who surfs to the login page should be redirected to index
             c.get('/auth/login', follow_redirects=True)
             self.assertTemplateUsed('main::index.html')
-            # The following tests are to make sure that non-open texts are not available to non-project members
-            c.get('/add_text/urn:cts:formulae:raetien/urn:cts:formulae:stgallen.wartmann0001.lat001/1', follow_redirects=True)
-            self.assertMessageFlashed('Diese Sammlung steht unter Copyright und darf hier nicht gezeigt werden.')
-            c.get('/corpus/urn:cts:formulae:raetien', follow_redirects=True)
-            self.assertMessageFlashed('Diese Sammlung steht unter Copyright und darf hier nicht gezeigt werden.')
-            c.get('/texts/urn:cts:formulae:raetien.erhart0001.lat001+urn:cts:formulae:andecavensis.form001.lat001/passage/1+all', follow_redirects=True)
-            self.assertMessageFlashed('Mindestens ein Text, den Sie anzeigen möchten, ist nicht verfügbar.')
-            c.get('/texts/urn:cts:formulae:raetien.erhart0001.lat001/passage/1', follow_redirects=True)
-            self.assertMessageFlashed('Mindestens ein Text, den Sie anzeigen möchten, ist nicht verfügbar.')
+            c.get('/texts/urn:cts:cjhnt:nt.86-Jud.grc001+urn:cts:cjhnt:commentary.tlg0042006.opp-grc1/passage/1+145', follow_redirects=True)
+            self.assertMessageFlashed('Fragmenta In Evangelium Joannis (In Catenis).145 wurde nicht gefunden. Der ganze Text wird angezeigt.')
+            self.assertTemplateUsed('main::multipassage.html')
 
     @patch("formulae.search.routes.advanced_query_index")
     def test_advanced_search_results(self, mock_search):
@@ -236,12 +198,12 @@ class TestIndividualRoutes(Formulae_Testing):
     @patch("formulae.search.routes.query_index")
     def test_simple_search_results(self, mock_search):
         """ Make sure that the correct search results are passed to the search results form"""
-        params = dict(corpus='formulae%2Bchartae', q='regnum', sort='urn')
+        params = dict(corpus='new_testament%2Bjewish', q='regnum', sort='urn')
         mock_search.return_value = [[], 0]
         with self.client as c:
             c.post('/auth/login', data=dict(username='project.member', password="some_password"),
                    follow_redirects=True)
-            response = c.get('/search/simple?corpus=formulae&corpus=chartae&q=Regnum')
+            response = c.get('/search/simple?corpus=new_testament&corpus=jewish&q=Regnum')
             for p, v in params.items():
                 self.assertRegex(str(response.location), r'{}={}'.format(p, v))
 
@@ -346,19 +308,19 @@ class TestForms(Formulae_Testing):
 
     def test_valid_data_simple_search_form(self):
         """ Ensure that the simple search form validates with valid data"""
-        # This test does not work with Travis
-        if os.environ.get('TRAVIS'):
-            return
-        form = SearchForm(corpus=['formulae'], q='regnum')
+        form = SearchForm(corpus=['new_testament'], q='regnum')
+        form.corpus.data = ['new_testament']
         form.validate()
         self.assertTrue(form.validate(), 'Simple search with "regnum" should validate')
-        form = SearchForm(corpus=['formulae'], q='re?num')
+        form = SearchForm(corpus=['new_testament'], q='re?num')
+        form.corpus.data = ['new_testament']
         form.validate()
         self.assertTrue(form.validate(), 'Simple search with "re?num" should validate')
 
     def test_invalid_data_simple_search_form(self):
         """ Ensure that the simple search form returns a ValidationError with no corpus"""
         form = SearchForm(corpus=[''], q='regnum')
+        form.corpus.data = ['']
         self.assertFalse(form.validate(), 'Search with no corpus specified should not validate')
         # I need two choices here since locally it returns the default Error and on Travis it returns the custom message
         self.assertIn(str(form.corpus.errors[0]),
@@ -368,8 +330,9 @@ class TestForms(Formulae_Testing):
     def test_validate_invalid_advanced_search_form(self):
         """ Ensure that a form with invalid data does not validate"""
         # I removed this sub-test because, for some reason, it doesn't pass on Travis, even though it passes locally.
-        # form = AdvancedSearchForm(corpus=['some corpus'])
-        # self.assertFalse(form.validate(), "Invalid corpus choice should not validate")
+        form = AdvancedSearchForm(corpus=['some corpus'])
+        form.corpus.data = ['some corpus']
+        self.assertFalse(form.validate(), "Invalid corpus choice should not validate")
         form = AdvancedSearchForm(year=200)
         self.assertFalse(form.validate(), "Invalid year choice should not validate")
         form = AdvancedSearchForm(month="weird")
