@@ -14,6 +14,8 @@ from .errors.handlers import e_internal_error, e_not_found_error, e_unknown_coll
 import re
 from datetime import date
 from string import punctuation
+from . import db
+from .models import NtComRels
 
 
 class NemoFormulae(Nemo):
@@ -32,7 +34,8 @@ class NemoFormulae(Nemo):
         ("/lang", "r_set_language", ["GET", "POST"]),
         ("/sub_elements/<coll>/<objectIds>/<reffs>", "r_add_sub_elements", ["GET"]),
         ("/sub_elements/<coll>", "r_get_sub_elements", ["GET"]),
-        ("/imprint", "r_impressum", ["GET"])
+        ("/imprint", "r_impressum", ["GET"]),
+        ("/nt_com/<nt_book>/passage/<subreference>", "r_commentary_view", ['GET'])
     ]
     SEMANTIC_ROUTES = [
         "r_collection", "r_references", "r_multipassage"
@@ -504,27 +507,20 @@ class NemoFormulae(Nemo):
         :return: Template, collections metadata and Markup object representing the text
         :rtype: {str: Any}
         """
-        translations = {}
-        for i in ids:
-            p = self.resolver.getMetadata(self.resolver.getMetadata(i).parent.id)
-            translations[i] = [m for m in p.readableDescendants if m.id not in ids]
-        passage_data = {'template': 'main::multipassage.html', 'objects': [], "translation": translations}
-        subrefers = subreferences.split('+')
-        result_sents = request.args.get('result_sents')
-        for i, id in enumerate(ids):
-            if self.check_project_team() is True or id in self.open_texts:
-                if subrefers[i] in ["all", 'first']:
-                    subref = self.get_reffs(id)[0][0]
-                else:
-                    subref = subrefers[i]
-                d = self.r_passage(id, subref, lang=lang)
-                del d['template']
-                if result_sents:
-                    d['text_passage'] = self.highlight_found_sents(d['text_passage'],
-                                                                   self.convert_result_sents(result_sents))
-                passage_data['objects'].append(d)
-        if len(ids) > len(passage_data['objects']):
-            flash(_('Mindestens ein Text, den Sie anzeigen möchten, ist nicht verfügbar.'))
+        def split_comms(com):
+            id = ':'.join(com.split(':')[:-1]).replace('greekLit', 'cjhnt')
+            ref = com.split(':')[-1]
+            return {'id': id, 'ref': ref}
+
+        comms = [split_comms(x.com) for x in NtComRels.query.filter_by(nt=nt_book + ':' + subreference).all()]
+        print(comms)
+        passage_data = {'template': 'main::commentary_view.html', 'comm_sections': [], "nt": self.r_passage(nt_book,
+                                                                                                            subreference,
+                                                                                                            lang=lang)}
+        for com in comms:
+            d = self.r_passage(com['id'], com['ref'], lang=lang)
+            del d['template']
+            passage_data['comm_sections'].append(d)
         return passage_data
 
     def convert_result_sents(self, sents):

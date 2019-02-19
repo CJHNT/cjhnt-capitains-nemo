@@ -44,6 +44,7 @@ class NtComRels(db.Model):
         These records should be queried whenever an NT text is opened in the commentary view. And it should return a
         list of the commentary sections that comment on this NT passage.
     """
+    __bind_key__ = 'appmeta'
     id = db.Column(db.Integer, primary_key=True)
     nt = db.Column(db.String(256), index=True)
     com = db.Column(db.String(256), index=True)

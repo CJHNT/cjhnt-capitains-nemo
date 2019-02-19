@@ -12,6 +12,9 @@ class Config(object):
     ELASTICSEARCH_URL = os.environ.get('ELASTICSEARCH_URL')
     LANGUAGES = ['en', 'de', 'fr']
     CORPUS_FOLDERS = os.environ.get('CORPUS_FOLDERS').split(';') if os.environ.get('CORPUS_FOLDERS') else ["/home/matt/results/formulae"]
+    SQLALCHEMY_BINDS = {
+        'appmeta':      'sqlite:////{}/appmeta.db'.format(CORPUS_FOLDERS[0])
+    }
     CACHE_DIRECTORY = os.environ.get('NEMO_CACHE_DIR') or './cache/'
     MAIL_SERVER = os.environ.get('MAIL_SERVER')
     MAIL_PORT = int(os.environ.get('MAIL_PORT') or 25)
