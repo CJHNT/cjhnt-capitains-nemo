@@ -513,7 +513,6 @@ class NemoFormulae(Nemo):
             return {'id': id, 'ref': ref}
 
         comms = [split_comms(x.com) for x in NtComRels.query.filter_by(nt=nt_book + ':' + subreference).all()]
-        print(comms)
         passage_data = {'template': 'main::commentary_view.html', 'comm_sections': [], "nt": self.r_passage(nt_book,
                                                                                                             subreference,
                                                                                                             lang=lang)}
