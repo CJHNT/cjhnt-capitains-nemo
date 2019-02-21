@@ -2,7 +2,7 @@
 
 {% macro header_passage(object) %}
 <header>
-    <!-- TO DO -->    
+    <h3 class="entry-title text-center">{{object.collections.current.title}}</h3>
 </header>
 {% endmacro %}
 
@@ -28,34 +28,46 @@
 {% endmacro %}
 
 {% macro show_passage(nt, comm_sections) %}
+<article class="hentry entry white col-sm-12">
+            <!-- <nav>
+                {{ navigation }}
+            </nav> -->
+            
+            <div class="row pb-0" id="nt-text">
+            <section class="col-sm text-center">{{ header_passage(nt) }}{{ nt.text_passage }}</section>
+            </div>
+            </article>
         <article class="hentry entry white col-sm-12">
             <!-- <nav>
                 {{ navigation }}
             </nav> -->
             
-            <div class="row" id="nt-text">
-            <section class="col-sm">{{ nt.text_passage }}</section>
-            </div>
             <div class="row" id="com-text">
-            {% for text in comm_sections %}
-            {%set all_texts = comm_sections|map(attribute='objectId')|list %}
-            {%set all_reffs = comm_sections|map(attribute='subreference')|list %}
-            {%set new_reffs = comm_sections|map(attribute='subreference')|list %}
-            {% set navigation = nav(text, all_texts, new_reffs, loop.index0) %}
-                {% if loop.last %}
-                <section class="col-sm">
-                {% else %}
-                <section class="col-sm with-border">
-                {% endif %}
-                {% if comm_sections|length > 1 %}
-                <a href="{{ url_for('InstanceNemo.r_multipassage', objectIds=all_texts|remove_from_list(text.objectId)|join_list_values('+'), subreferences=all_reffs|remove_from_list(text.subreference)|join_list_values('+')) }}">{{ _('Diesen Text ausblenden') }}</a>
-                {% endif %}
-                    {{ header_passage(text) }}
+                    
                     <div class="d-flex flex-row">{{ navigation }}</div>
-                        {{ text.text_passage }}
-                    <!-- <footer>{% include "main::passage_footer.html" %}</footer> -->
-                </section>
-            {% endfor %}
+                        <div id="commentaryCarousel" class="carousel slide" data-ride="false" data-interval="false">
+                            <ol class="carousel-indicators">
+                                {% for number in range(comm_sections|count) %}
+                                <li data-target="#commentaryCarousel" data-slide-to="{{ number }}"{% if loop.first %} class="active"{% endif %}></li>
+                                {% endfor %}
+                            </ol>
+                            <div class="carousel-inner w-75">
+                            {% for text in comm_sections %}
+                                <div class="carousel-item{% if loop.first %} active{% endif %}">
+                                    {{ header_passage(text) }}
+                                    {{ text.text_passage }}
+                                </div>
+                            {% endfor %}
+                            </div>
+                            <a class="carousel-control-prev" href="#commentaryCarousel" role="button" data-slide="prev">
+                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                <span class="sr-only">Previous</span>
+                            </a>
+                            <a class="carousel-control-next" href="#commentaryCarousel" role="button" data-slide="next">
+                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                <span class="sr-only">Next</span>
+                            </a>
+                        </div>
             </div>
         </article>
     </div>

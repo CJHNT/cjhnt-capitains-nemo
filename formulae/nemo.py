@@ -14,7 +14,6 @@ from .errors.handlers import e_internal_error, e_not_found_error, e_unknown_coll
 import re
 from datetime import date
 from string import punctuation
-from . import db
 from .models import NtComRels
 
 
