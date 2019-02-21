@@ -25,6 +25,9 @@ class TestConfig(Config):
     SQLALCHEMY_DATABASE_URI = 'sqlite://'
     CORPUS_FOLDERS = ["tests/test_data/cjhnt"]
     WTF_CSRF_ENABLED = False
+    SQLALCHEMY_BINDS = {
+        'appmeta':      'sqlite:///./{}/appmeta.db'.format(CORPUS_FOLDERS[0])
+    }
 
 
 class Formulae_Testing(flask_testing.TestCase):
@@ -39,6 +42,7 @@ class Formulae_Testing(flask_testing.TestCase):
                                             "auth": "templates/auth",
                                             "search": "templates/search"},
                                  css=["assets/css/theme.css"], js=["assets/js/empty.js"], static_folder="./assets/")
+        print(app.config)
 
         return app
 
