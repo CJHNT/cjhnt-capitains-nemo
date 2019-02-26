@@ -51,7 +51,7 @@
                                 <li data-target="#commentaryCarousel" data-slide-to="{{ number }}"{% if loop.first %} class="active"{% endif %}></li>
                                 {% endfor %}
                             </ol>
-                            <div class="carousel-inner w-75">
+                            <div class="carousel-inner">
                             {% for text in comm_sections %}
                                 <div class="carousel-item{% if loop.first %} active{% endif %}">
                                     {{ header_passage(text) }}
