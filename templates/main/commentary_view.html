@@ -46,14 +46,9 @@
                     
                     <div class="d-flex flex-row">{{ navigation }}</div>
                         <div id="commentaryCarousel" class="carousel slide" data-ride="false" data-interval="false">
-                            <ol class="carousel-indicators">
-                                {% for number in range(comm_sections|count) %}
-                                <li data-target="#commentaryCarousel" data-slide-to="{{ number }}"{% if loop.first %} class="active"{% endif %}></li>
-                                {% endfor %}
-                            </ol>
                             <div class="carousel-inner">
                             {% for text in comm_sections %}
-                                <div class="carousel-item{% if loop.first %} active{% endif %}">
+                                <div class="carousel-item{% if loop.first %} active" id="carousel-text-first{% elif loop.last %}" id="carousel-text-last{% endif %}">
                                     {{ header_passage(text) }}
                                     {{ text.text_passage }}
                                 </div>
@@ -61,11 +56,11 @@
                             </div>
                             <a class="carousel-control-prev" href="#commentaryCarousel" role="button" data-slide="prev">
                                 <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                                <span class="sr-only">Previous</span>
+                                <span class="sr-only" onclick="showHideControl()">Previous</span>
                             </a>
                             <a class="carousel-control-next" href="#commentaryCarousel" role="button" data-slide="next">
                                 <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                                <span class="sr-only">Next</span>
+                                <span class="sr-only" onclick="showHideControl()">Next</span>
                             </a>
                         </div>
             </div>

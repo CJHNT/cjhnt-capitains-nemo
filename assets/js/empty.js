@@ -103,3 +103,24 @@ function getSubElements(coll) {
             request.send()
     }
 }
+
+$(function () {
+    if ($('#carousel-text-first').hasClass('active')) {
+        $('.carousel-control-prev').hide();
+    } else if ($('#carousel-text-last').hasClass('active')) {
+        $('.carousel-control-next').hide();
+    }
+})
+
+$('#commentaryCarousel').on('slid.bs.carousel', function () {
+  if ($('#carousel-text-first').hasClass('active')) {
+        $('.carousel-control-prev').hide();
+    } else {
+        $('.carousel-control-prev').show();
+    };
+    if ($('#carousel-text-last').hasClass('active')) {
+        $('.carousel-control-next').hide();
+    }else {
+        $('.carousel-control-next').show();
+    };
+})
