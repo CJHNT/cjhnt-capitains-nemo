@@ -107,7 +107,8 @@ function getSubElements(coll) {
 $(function () {
     if ($('#carousel-text-first').hasClass('active')) {
         $('.carousel-control-prev').hide();
-    } else if ($('#carousel-text-last').hasClass('active')) {
+    } 
+    if ($('#carousel-text-last').length == 0) {
         $('.carousel-control-next').hide();
     }
 })
@@ -120,7 +121,7 @@ $('#commentaryCarousel').on('slid.bs.carousel', function () {
     };
     if ($('#carousel-text-last').hasClass('active')) {
         $('.carousel-control-next').hide();
-    }else {
+    } else {
         $('.carousel-control-next').show();
     };
 })

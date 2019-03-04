@@ -2,7 +2,7 @@
 
 {% macro header_passage(object) %}
 <header>
-    <h3 class="entry-title text-center">{{object.collections.current.title}}</h3>
+    <h3 class="entry-title text-center">{{object.collections.current.title}} {{ object.subreference }}</h3>
 </header>
 {% endmacro %}
 
@@ -10,15 +10,13 @@
 <!-- PERHAPS NOT NEEDED -->
 {% endmacro %}
 
-{% macro nav(text, all_texts, new_reffs, index) %}
+{% macro nav(text) %}
     {% if text.prev %}
-    {% set prev_reffs = new_reffs|replace_indexed_item(index, text.prev) %}
-    <a href="{{url_for('InstanceNemo.r_multipassage', objectIds=all_texts|join_list_values('+'), subreferences=prev_reffs|join_list_values('+')) }}">«<small>{{ _('Vorherige Seite') }}</small>
+    <a href="{{url_for('InstanceNemo.r_commentary_view', nt_book=text.objectId, subreference=text.prev) }}">«<small>{{ _('Vorheriger Vers') }}</small>
     </a>
     {% endif %}
     {% if text.next %}
-    {% set next_reffs = new_reffs|replace_indexed_item(index, text.next) %}
-    <a class="ml-auto" href="{{url_for('InstanceNemo.r_multipassage', objectIds=all_texts|join_list_values('+'), subreferences=next_reffs|join_list_values('+')) }}"><small>{{ _('Nächste Seite') }}</small>»
+    <a class="ml-auto" href="{{url_for('InstanceNemo.r_commentary_view', nt_book=text.objectId, subreference=text.next) }}"><small>{{ _('Nächster Vers') }}</small>»
     </a>
     {% endif %}
 {% endmacro %}
@@ -34,7 +32,9 @@
             </nav> -->
             
             <div class="row pb-0" id="nt-text">
-            <section class="col-sm text-center">{{ header_passage(nt) }}{{ nt.text_passage }}</section>
+            <section class="col-sm text-center">{{ header_passage(nt) }}
+            <div class="d-flex flex-row">{{ nav(nt) }}</div>
+            {{ nt.text_passage }}</section>
             </div>
             </article>
         <article class="hentry entry white col-sm-12">
