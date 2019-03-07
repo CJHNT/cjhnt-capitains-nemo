@@ -49,7 +49,7 @@
                         <div id="commentaryCarousel" class="carousel slide" data-ride="false" data-interval="false">
                             <div class="carousel-inner">
                             {% for text in comm_sections %}
-                                <div class="carousel-item{% if loop.first %} active" id="carousel-text-first{% elif loop.last %}" id="carousel-text-last{% endif %}">
+                                <div urn="{{ text.objectId + ':' + text.subreference }}" class="carousel-item{% if loop.first %} active" id="carousel-text-first{% elif loop.last %}" id="carousel-text-last{% endif %}">
                                     {{ header_passage(text) }}
                                     {{ text.text_passage }}
                                 </div>
