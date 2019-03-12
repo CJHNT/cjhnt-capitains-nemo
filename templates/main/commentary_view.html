@@ -1,0 +1,93 @@
+{% extends "main::text_container.html" %}
+
+{% macro header_passage(object) %}
+<header>
+    <h3 class="entry-title text-center">{{object.collections.current.title}} {{ object.subreference }}</h3>
+</header>
+{% endmacro %}
+
+{% macro version_menu(objId) %}
+<!-- PERHAPS NOT NEEDED -->
+{% endmacro %}
+
+{% macro nav(text) %}
+    {% if text.prev %}
+    <a href="{{url_for('InstanceNemo.r_commentary_view', nt_book=text.objectId, subreference=text.prev) }}">«<small>{{ _('Vorheriger Vers') }}</small>
+    </a>
+    {% endif %}
+    {% if text.next %}
+    <a class="ml-auto" href="{{url_for('InstanceNemo.r_commentary_view', nt_book=text.objectId, subreference=text.next) }}"><small>{{ _('Nächster Vers') }}</small>»
+    </a>
+    {% endif %}
+{% endmacro %}
+
+{% macro default_footer() %}
+    {% include "main::passage_footer.html" %}
+{% endmacro %}
+
+{% macro show_passage(nt, comm_sections) %}
+<div>
+<article class="hentry entry white col-sm-12">
+            <!-- <nav>
+                {{ navigation }}
+            </nav> -->
+            
+            <div class="row pb-0" id="nt-text">
+            <section class="col-sm text-center">{{ header_passage(nt) }}
+            <div class="d-flex flex-row">{{ nav(nt) }}</div>
+            {{ nt.text_passage }}</section>
+            </div>
+            </article>
+        <article class="hentry entry white col-sm-12">
+            <!-- <nav>
+                {{ navigation }}
+            </nav> -->
+            
+            <div class="row" id="com-text">
+                    
+                    <div class="d-flex flex-row">{{ navigation }}</div>
+                        <div id="commentaryCarousel" class="carousel slide" data-ride="false" data-interval="false">
+                            <div class="carousel-inner">
+                            {% for text in comm_sections %}
+                                <div urn="{{ text.objectId + ':' + text.subreference }}" class="carousel-item{% if loop.first %} active" id="carousel-text-first{% elif loop.last %}" id="carousel-text-last{% endif %}">
+                                    {{ header_passage(text) }}
+                                    {{ text.text_passage }}
+                                </div>
+                            {% endfor %}
+                            </div>
+                            <a class="carousel-control-prev" href="#commentaryCarousel" role="button" data-slide="prev">
+                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                <span class="sr-only" onclick="showHideControl()">Previous</span>
+                            </a>
+                            <a class="carousel-control-next" href="#commentaryCarousel" role="button" data-slide="next">
+                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                <span class="sr-only" onclick="showHideControl()">Next</span>
+                            </a>
+                        </div>
+            </div>
+        </article>
+    </div>
+{% endmacro %}
+
+{% block texts %}
+
+{{ show_passage(nt, comm_sections) }}
+
+{% endblock %}
+
+{% block pdfs %}
+
+<div class="row">
+    {% for text in objects %}
+    {% set path = 'images/' ~ text.objectId ~ '.pdf' %}
+    <section class="col-sm">
+        <div class="embed-responsive embed-responsive-1by1">
+            <object data="{{url_for('InstanceNemo.static', filename=path)}}" class="embed-responsive-item"></object>
+        </div>
+    </section>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block metadata %}
+{% endblock %}
