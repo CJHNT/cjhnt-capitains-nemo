@@ -13,6 +13,7 @@ flask-nemo>=1.0.3
 Flask-SQLAlchemy==2.3.2
 Flask-Testing>=0.7.1
 Flask-WTF==0.14.2
+psycopg2==2.7.7
 PyJWT>=1.6.4
 python-slugify==1.2.1
 python-dotenv>=0.8.2
