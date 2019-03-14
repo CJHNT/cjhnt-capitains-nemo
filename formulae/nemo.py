@@ -280,7 +280,7 @@ class NemoFormulae(Nemo):
             "template": "main::collection.html",
             "current_label": collection.get_label(lang),
             "collections": {
-                "members": self.make_members(collection, lang=lang)
+                "members": [[member, self.make_members(self.resolver.getMetadata(member['id']), lang=lang)] for member in self.make_members(collection, lang=lang)]
             },
             "prev_texts": objectIds,
             "prev_reffs": reffs
@@ -297,7 +297,7 @@ class NemoFormulae(Nemo):
         :rtype: {str: Any}
         """
         collection = self.resolver.getMetadata(objectId)
-        members = self.make_members(collection, lang=lang)
+        members = [[member, self.make_members(self.resolver.getMetadata(member['id']), lang=lang)] for member in self.make_members(collection, lang=lang)]
         """
         if self.check_project_team() is False:
             members = [x for x in members if x['id'] in self.OPEN_COLLECTIONS]
