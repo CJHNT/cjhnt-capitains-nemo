@@ -35,7 +35,7 @@ nosetests.xml
 .pydevproject
 
 venv
-# app.db
+app.db
 .env
 logs/
 cache/
