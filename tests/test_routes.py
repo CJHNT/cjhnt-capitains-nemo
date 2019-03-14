@@ -1,6 +1,6 @@
 from config import Config
 from capitains_nautilus.cts.resolver import NautilusCTSResolver
-from formulae import create_app, db
+from formulae import create_app, db, mail
 from formulae.nemo import NemoFormulae
 from formulae.models import User
 from formulae.search.Search import advanced_query_index, query_index, suggest_composition_places, build_sort_list
@@ -17,7 +17,7 @@ from .fake_es import FakeElasticsearch
 from collections import OrderedDict
 import os
 from MyCapytain.common.constants import Mimetypes
-from flask import Markup
+from flask import Markup, url_for, abort
 
 
 class TestConfig(Config):
@@ -43,6 +43,10 @@ class Formulae_Testing(flask_testing.TestCase):
                                             "search": "templates/search"},
                                  css=["assets/css/theme.css"], js=["assets/js/empty.js"], static_folder="./assets/")
 
+        @app.route('/500', methods=['GET'])
+        def r_500():
+            abort(500)
+
         return app
 
     def setUp(self):
@@ -59,6 +63,20 @@ class Formulae_Testing(flask_testing.TestCase):
     def tearDown(self):
         db.session.remove()
         db.drop_all()
+
+
+class TestFunctions(Formulae_Testing):
+    def test_get_first_passage(self):
+        """ Make sure the first passage of a work is correctly returned"""
+        first = self.nemo.get_first_passage('urn:cts:cjhnt:nt.86-Jud.grc001')
+        self.assertEqual(first, '1.1-1.20')
+
+    def test_NemoFormulae_f_replace_indexed_item(self):
+        """ Make sure that the replace_indexed_item filter works correctly"""
+        old_list = [1, 2, 3, 5, 5, 6, 7]
+        new_list = [1, 2, 3, 4, 5, 6, 7]
+        test_list = self.nemo.f_replace_indexed_item(old_list, 3, 4)
+        self.assertEqual(test_list, new_list)
 
 
 class TestIndividualRoutes(Formulae_Testing):
@@ -86,6 +104,8 @@ class TestIndividualRoutes(Formulae_Testing):
             # Check for backwards compatibility of URLs
             c.get('/texts/urn:cts:cjhnt:nt.86-Jud.grc001+urn:cts:cjhnt:commentary.tlg0042006.opp-grc1/passage/1+first', follow_redirects=True)
             self.assertTemplateUsed('main::multipassage.html')
+            c.get('/texts/urn:cts:cjhnt:nt.86-Jud+urn:cts:cjhnt:commentary.tlg0042006.opp-grc1/passage/1+first', follow_redirects=True)
+            self.assertTemplateUsed('main::multipassage.html')
             c.get('/add_collections/urn:cts:cjhnt:nt.86-Jud.grc001/1', follow_redirects=True)
             self.assertTemplateUsed('main::collection.html')
             c.get('/add_collection/urn:cts:cjhnt:nt/urn:cts:cjhnt:nt.86-Jud.grc001/1', follow_redirects=True)
@@ -93,6 +113,12 @@ class TestIndividualRoutes(Formulae_Testing):
             c.get('/texts/urn:cts:cjhnt:nt.86-Jud.grc001+urn:cts:cjhnt:commentary.tlg0042006.opp-grc1/passage/1+145', follow_redirects=True)
             self.assertMessageFlashed('Fragmenta In Evangelium Joannis (In Catenis).145 was not found. The whole text is shown here.')
             self.assertTemplateUsed('main::multipassage.html')
+            c.get('/work/urn:cts:cjhnt:nt.61-Mt.grc001', follow_redirects=True)
+            self.assertTemplateUsed('main::sub_collection.html')
+            c.get('/add_text/urn:cts:cjhnt:nt.61-Mt.grc001/urn:cts:cjhnt:nt.86-Jud.grc001/1', follow_redirects=True)
+            self.assertTemplateUsed('main::sub_collection.html')
+            c.get('/nt_com/urn:cts:cjhnt:nt.86-Jud.grc001/passage/1.1', follow_redirects=True)
+            self.assertTemplateUsed('main::commentary_view.html')
 
     def test_authorized_project_member(self):
         """ Make sure that all routes are open to project members"""
@@ -117,6 +143,8 @@ class TestIndividualRoutes(Formulae_Testing):
             # Check for backwards compatibility of URLs
             c.get('/texts/urn:cts:cjhnt:nt.86-Jud.grc001+urn:cts:cjhnt:commentary.tlg0042006.opp-grc1/passage/1+first', follow_redirects=True)
             self.assertTemplateUsed('main::multipassage.html')
+            c.get('/texts/urn:cts:cjhnt:nt.86-Jud+urn:cts:cjhnt:commentary.tlg0042006.opp-grc1/passage/1+first', follow_redirects=True)
+            self.assertTemplateUsed('main::multipassage.html')
             c.get('/add_collections/urn:cts:cjhnt:nt.86-Jud.grc001/1', follow_redirects=True)
             self.assertTemplateUsed('main::collection.html')
             c.get('/add_collection/urn:cts:cjhnt:nt/urn:cts:cjhnt:nt.86-Jud.grc001/1', follow_redirects=True)
@@ -127,6 +155,12 @@ class TestIndividualRoutes(Formulae_Testing):
             c.get('/texts/urn:cts:cjhnt:nt.86-Jud.grc001+urn:cts:cjhnt:commentary.tlg0042006.opp-grc1/passage/1+145', follow_redirects=True)
             self.assertMessageFlashed('Fragmenta In Evangelium Joannis (In Catenis).145 wurde nicht gefunden. Der ganze Text wird angezeigt.')
             self.assertTemplateUsed('main::multipassage.html')
+            c.get('/work/urn:cts:cjhnt:nt.61-Mt.grc001', follow_redirects=True)
+            self.assertTemplateUsed('main::sub_collection.html')
+            c.get('/add_text/urn:cts:cjhnt:nt.61-Mt.grc001/urn:cts:cjhnt:nt.86-Jud.grc001/1', follow_redirects=True)
+            self.assertTemplateUsed('main::sub_collection.html')
+            c.get('/nt_com/urn:cts:cjhnt:nt.86-Jud.grc001/passage/1.1', follow_redirects=True)
+            self.assertTemplateUsed('main::commentary_view.html')
 
     def test_authorized_normal_user(self):
         """ Make sure that all routes are open to normal users but that some texts are not available"""
@@ -148,6 +182,8 @@ class TestIndividualRoutes(Formulae_Testing):
             # self.assertTemplateUsed('main::references.html')
             c.get('/texts/urn:cts:cjhnt:nt.86-Jud.grc001+urn:cts:cjhnt:commentary.tlg0042006.opp-grc1/passage/1+1', follow_redirects=True)
             self.assertTemplateUsed('main::multipassage.html')
+            c.get('/texts/urn:cts:cjhnt:nt.86-Jud+urn:cts:cjhnt:commentary.tlg0042006.opp-grc1/passage/1+first', follow_redirects=True)
+            self.assertTemplateUsed('main::multipassage.html')
             # Check for backwards compatibility of URLs
             c.get('/texts/urn:cts:cjhnt:nt.86-Jud.grc001+urn:cts:cjhnt:commentary.tlg0042006.opp-grc1/passage/1+first', follow_redirects=True)
             self.assertTemplateUsed('main::multipassage.html')
@@ -161,6 +197,12 @@ class TestIndividualRoutes(Formulae_Testing):
             c.get('/texts/urn:cts:cjhnt:nt.86-Jud.grc001+urn:cts:cjhnt:commentary.tlg0042006.opp-grc1/passage/1+145', follow_redirects=True)
             self.assertMessageFlashed('Fragmenta In Evangelium Joannis (In Catenis).145 wurde nicht gefunden. Der ganze Text wird angezeigt.')
             self.assertTemplateUsed('main::multipassage.html')
+            c.get('/work/urn:cts:cjhnt:nt.61-Mt.grc001', follow_redirects=True)
+            self.assertTemplateUsed('main::sub_collection.html')
+            c.get('/add_text/urn:cts:cjhnt:nt.61-Mt.grc001/urn:cts:cjhnt:nt.86-Jud.grc001/1', follow_redirects=True)
+            self.assertTemplateUsed('main::sub_collection.html')
+            c.get('/nt_com/urn:cts:cjhnt:nt.86-Jud.grc001/passage/1.1', follow_redirects=True)
+            self.assertTemplateUsed('main::commentary_view.html')
 
     @patch("formulae.search.routes.advanced_query_index")
     def test_advanced_search_results(self, mock_search):
@@ -418,6 +460,95 @@ class TestAuth(Formulae_Testing):
             self.assertTrue(User.query.filter_by(username='new.user').first(), "It should have added new.user.")
             self.assertTemplateUsed('auth::login.html')
 
+    def test_send_email_existing_user(self):
+        """ Ensure that emails are constructed correctly"""
+        with self.client as c:
+            with mail.record_messages() as outbox:
+                c.post('/auth/reset_password_request', data=dict(email="project.member@uni-hamburg.de"),
+                       follow_redirects=True)
+                self.assertEqual(len(outbox), 1, 'One email should be sent')
+                self.assertEqual(outbox[0].recipients, ["project.member@uni-hamburg.de"],
+                                 'The recipient email address should be correct.')
+                self.assertEqual(outbox[0].subject, _('[Formulae - Litterae - Chartae] Passwort zurücksetzen'),
+                                 'The Email should have the correct subject.')
+                self.assertIn(_('Sehr geehrte(r)') + ' project.member', outbox[0].html,
+                              'The email text should be addressed to the correct user.')
+                self.assertEqual(outbox[0].sender, 'no-reply@example.com',
+                                 'The email should come from the correct sender.')
+                self.assertMessageFlashed(_('Die Anweisung zum Zurücksetzen Ihres Passworts wurde Ihnen per E-mail zugeschickt'))
+
+    def test_send_email_not_existing_user(self):
+        """ Ensure that emails are constructed correctly"""
+        with self.client as c:
+            with mail.record_messages() as outbox:
+                c.post('/auth/reset_password_request', data=dict(email="pirate.user@uni-hamburg.de"),
+                       follow_redirects=True)
+                self.assertEqual(len(outbox), 0, 'No email should be sent when the email is not in the database.')
+                self.assertMessageFlashed(_('Die Anweisung zum Zurücksetzen Ihres Passworts wurde Ihnen per E-mail zugeschickt'))
+
+    def test_reset_password_from_email_token(self):
+        """ Make sure that a correct email token allows the user to reset their password while an incorrect one doesn't"""
+        with self.client as c:
+            user = User.query.filter_by(username='project.member').first()
+            token = user.get_reset_password_token()
+            # Make sure that the template renders correctly with correct token
+            c.post(url_for('auth.r_reset_password', token=token, _external=True))
+            self.assertTemplateUsed('auth::reset_password.html')
+            # Make sure the correct token allows the user to change their password
+            c.post(url_for('auth.r_reset_password', token=token, _external=True),
+                   data={'password': 'some_new_password', 'password2': 'some_new_password'})
+            self.assertTrue(user.check_password('some_new_password'), 'User\'s password should be changed.')
+            c.post(url_for('auth.r_reset_password', token='some_weird_token', _external=True),
+                   data={'password': 'some_password', 'password2': 'some_password'}, follow_redirects=True)
+            self.assertTemplateUsed('main::index.html')
+            self.assertTrue(user.check_password('some_new_password'), 'User\'s password should not have changed.')
+            # Make sure that a logged in user who comes to this page with a token is redirected to their user page with a flashed message
+            c.post('/auth/login', data=dict(username='project.member', password="some_new_password"),
+                   follow_redirects=True)
+            c.post(url_for('auth.r_reset_password', token=token, _external=True), follow_redirects=True)
+            self.assertTemplateUsed('auth::login.html')
+            self.assertMessageFlashed(_('Sie sind schon eingeloggt. Sie können Ihr Password hier ändern.'))
+            self.assertEqual(repr(user), '<User project.member>')
+
+    def test_user_logout(self):
+        """ Make sure that the user is correctly logged out and redirected"""
+        with self.client as c:
+            c.post('/auth/login', data=dict(username='project.member', password="some_password"),
+                   follow_redirects=True)
+            self.assertTrue(current_user.is_authenticated, 'User should be logged in.')
+            c.get('/auth/logout', follow_redirects=True)
+            self.assertFalse(current_user.is_authenticated, 'User should now be logged out.')
+            self.assertTemplateUsed('auth::login.html')
+
+    def test_user_change_prefs(self):
+        """ Make sure that the user can change their language and password"""
+        with self.client as c:
+            c.post('/auth/login', data=dict(username='project.member', password="some_password"),
+                   follow_redirects=True)
+            self.assertEqual(current_user.default_locale, 'de', '"de" should be the default language.')
+            c.post('/auth/user/project.member', data={'new_locale': "en"})
+            self.assertEqual(current_user.default_locale, 'en', 'User language should have been changed to "en"')
+            c.post('/auth/user/project.member', data={'old_password': 'some_password', 'password': 'some_new_password',
+                                                      'password2': 'some_new_password'},
+                   follow_redirects=True)
+            self.assertTrue(User.query.filter_by(username='project.member').first().check_password('some_new_password'),
+                            'User should have a new password: "some_new_password".')
+            self.assertTemplateUsed('main::index.html')
+
+    def test_user_change_prefs_incorrect(self):
+        """ Make sure that a user who gives the false old password is not able to change their password"""
+        with self.client as c:
+            c.post('/auth/login', data=dict(username='project.member', password="some_password"),
+                   follow_redirects=True)
+            self.assertTrue(current_user.is_authenticated)
+            c.post(url_for('auth.r_user', username='project.member'), data={'old_password': 'some_wrong_password',
+                                                                            'password': 'some_new_password',
+                                                                            'password2': 'some_new_password'},
+                   follow_redirects=True)
+            self.assertTrue(User.query.filter_by(username='project.member').first().check_password('some_password'),
+                            'User\'s password should not have changed.')
+            self.assertMessageFlashed(_("Das ist nicht Ihr aktuelles Passwort."))
+
 
 class TestES(Formulae_Testing):
     def build_file_name(self, fake_args):
@@ -652,4 +783,12 @@ class TestErrors(Formulae_Testing):
             response = c.get('/collections/urn:cts:cjhnt:newtestament', follow_redirects=True)
             self.assert404(response, 'An Unknown Collection Error should also return 404.')
             self.assertTemplateUsed("errors::unknown_collection.html")
+
+    def test_500(self):
+        with self.client as c:
+            expected = "<h4>{}</h4><p>{}</p>".format(_('Ein unerwarteter Fehler ist aufgetreten'),
+                                                     _('Der Administrator wurde benachrichtigt. Bitte entschuldigen Sie die Unannehmlichkeiten!'))
+            response = c.get('/500', follow_redirects=True)
+            self.assert500(response, 'Should raise 500 error.')
+            self.assertIn(expected, response.get_data(as_text=True))
 

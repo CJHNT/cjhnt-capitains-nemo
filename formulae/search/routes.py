@@ -91,7 +91,7 @@ def r_results():
     return nemo.render(template='search::search.html', title=_('Suche'), posts=posts,
                        next_url=next_url, prev_url=prev_url, page_urls=page_urls,
                        first_url=first_url, last_url=last_url, current_page=page,
-                       search_string=g.search_form.q.data.lower(), url=dict(), open_texts=nemo.open_texts,
+                       search_string=g.search_form.q.data.lower(), url=dict(),
                        sort_urls=sort_urls, total_results=total, aggs=aggs)
 
 

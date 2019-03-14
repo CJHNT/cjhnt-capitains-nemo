@@ -65,7 +65,6 @@
     {% endif %}
     {% for post in posts %}
         <div class="card">
-            {% if current_user.project_team or post['id'] in open_texts %}
             <div class="card-header py-0 text-center"><a href="{{ url_for('InstanceNemo.r_multipassage', objectIds=post['id'], subreferences='all', result_sents=post['sents']|join('$')) }}">
                 {{ post['info']['title'] }}
             </a>{% if post['info']['date_string'] != ' ' %} ({{ post['info']['date_string'] }}){% endif %}{% if post['info']['orig_comp_ort']  != ' ' %} ({{ post['info']['orig_comp_ort'] }}){% endif %}</div>
@@ -74,11 +73,6 @@
                 <p class="card-text m-0"><small>- {{ sent }}</small></p>
                 {% endfor %}
             </div>
-            {% else %}
-            <div class="card-header py-0 text-center"><a class="disabled" title="{{ _('Dieser Text unterliegt dem Urheberrecht und ist online nicht verfügbar. Bitte konsultieren Sie den Text in der gedruckten Ausgabe.') }}">
-                {{ post['info']['title'] }}
-            </a>{% if post['info']['date_string'] != ' ' %} ({{ post['info']['date_string'] }}){% endif %}{% if post['info']['orig_comp_ort']  != ' ' %} ({{ post['info']['orig_comp_ort'] }}){% endif %}</div>
-            {% endif %}
         </div>
     {% endfor %}
     {% if last_url or first_url %}
