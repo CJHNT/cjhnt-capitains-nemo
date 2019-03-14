@@ -14,6 +14,7 @@ from .errors.handlers import e_internal_error, e_not_found_error, e_unknown_coll
 import re
 from datetime import date
 from string import punctuation
+from .models import NtComRels
 
 
 class NemoFormulae(Nemo):
@@ -32,7 +33,8 @@ class NemoFormulae(Nemo):
         ("/lang", "r_set_language", ["GET", "POST"]),
         ("/sub_elements/<coll>/<objectIds>/<reffs>", "r_add_sub_elements", ["GET"]),
         ("/sub_elements/<coll>", "r_get_sub_elements", ["GET"]),
-        ("/imprint", "r_impressum", ["GET"])
+        ("/imprint", "r_impressum", ["GET"]),
+        ("/nt_com/<nt_book>/passage/<subreference>", "r_commentary_view", ['GET'])
     ]
     SEMANTIC_ROUTES = [
         "r_collection", "r_references", "r_multipassage"
@@ -65,10 +67,10 @@ class NemoFormulae(Nemo):
         # "r_add_text_collections", "r_add_text_collection", "r_corpus", "r_add_text_corpus"
     ]
 
-    OPEN_COLLECTIONS = ['urn:cts:cjhnt:nt', 'urn:cts:greekLit:tlg0527', 'urn:cts:greekLit:tlg0018'] #, 'urn:cts:formulae:andecavensis.form001'] + ['urn:cts:formulae:andecavensis']
+    OPEN_COLLECTIONS = ['urn:cts:cjhnt:nt', 'urn:cts:greekLit:tlg0527', 'urn:cts:greekLit:tlg0018',
+                        'urn:cts:cjhnt:commentary']
 
-    HALF_OPEN_COLLECTIONS = ['urn:cts:formulae:mondsee', 'urn:cts:formulae:regensburg', 'urn:cts:formulae:salzburg',
-                             'urn:cts:formulae:werden', 'urn:cts:formulae:rheinisch']
+    HALF_OPEN_COLLECTIONS = []
 
     OPEN_NOTES = []
 
@@ -76,10 +78,6 @@ class NemoFormulae(Nemo):
                         "eng": _l("Englisch"), "grc": _l("Griechisch"), "mul": _l("Verschiedene")}
 
     BIBO = Namespace('http://bibliotek-o.org/1.0/ontology/')
-
-    SALZBURG_MAPPING = {'a': 'Codex Odalberti', 'b': 'Codex Fridarici', 'c': 'Codex Hartuuici', 'd': 'Codex Tietmari II',
-                        'e': 'Codex Balduuini', 'bn': 'Breves Notitiae', 'na': 'Notitia Arnonis',
-                        'bna': 'Breves Notitiae Anhang'}
 
     def __init__(self, *args, **kwargs):
         if "pdf_folder" in kwargs:
@@ -492,6 +490,35 @@ class NemoFormulae(Nemo):
                 passage_data['objects'].append(d)
         if len(ids) > len(passage_data['objects']):
             flash(_('Mindestens ein Text, den Sie anzeigen möchten, ist nicht verfügbar.'))
+        return passage_data
+
+    def r_commentary_view(self, nt_book, subreference, lang=None, result_sents=''):
+        """ Retrieve the appropriate NT passage as well as the commentary section(s) that go with it
+
+        :param nt_book: the id of the NT book
+        :type nt_book: str
+        :param lang: Lang in which to express main data
+        :type lang: str
+        :param subreference: portion (e.g., chapter.verse) of the NT book
+        :type subreference: str
+        :param result_sents: The list of sentences from elasticsearch results
+        :type result_sents: str
+        :return: Template, collections metadata and Markup object representing the text
+        :rtype: {str: Any}
+        """
+        def split_comms(com):
+            id = ':'.join(com.split(':')[:-1]).replace('greekLit', 'cjhnt')
+            ref = com.split(':')[-1]
+            return {'id': id, 'ref': ref}
+
+        comms = [split_comms(x.com) for x in NtComRels.query.filter_by(nt=nt_book + ':' + subreference).all()]
+        passage_data = {'template': 'main::commentary_view.html', 'comm_sections': [], "nt": self.r_passage(nt_book,
+                                                                                                            subreference,
+                                                                                                            lang=lang)}
+        for com in comms:
+            d = self.r_passage(com['id'], com['ref'], lang=lang)
+            del d['template']
+            passage_data['comm_sections'].append(d)
         return passage_data
 
     def convert_result_sents(self, sents):

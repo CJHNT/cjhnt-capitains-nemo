@@ -35,6 +35,24 @@ class User(UserMixin, db.Model):
             return
         return User.query.get(id)
 
+
+class NtComRels(db.Model):
+    """ This maps the relationships from the NT to the Commentaries.
+        id is the identifier of the relationship. Having a separate ID will allow two records to refer to the same NT text.
+        nt should be a passage-level identifier of an NT text.
+        com should be a passage-level identifier of a commentary section.
+        These records should be queried whenever an NT text is opened in the commentary view. And it should return a
+        list of the commentary sections that comment on this NT passage.
+    """
+    __bind_key__ = 'appmeta'
+    id = db.Column(db.Integer, primary_key=True)
+    nt = db.Column(db.String(256), index=True)
+    com = db.Column(db.String(256), index=True)
+
+    def __repr__(self):
+        return 'NT: {} --> Commentary: {}'.format(self.nt, self.com)
+
+
 @login.user_loader
 def load_user(id):
     return User.query.get(int(id))

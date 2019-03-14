@@ -6,26 +6,16 @@
     <div class="collapse navbar-collapse" id="mainNavbar">
         <ul class="navbar-nav my-0 mr-auto">
             <li class="nav-item active">
-                <a class="nav-link" href="https://www.formulae.uni-hamburg.de/das-projekt.html" target="_blank">{{ _('Über das Projekt') }}</a>
+                <a class="nav-link" href="https://www.cjh.uni-jena.de/" target="_blank">{{ _('Über das Projekt') }}</a>
             </li>
             <li class="nav-item active">
-                <a class="nav-link" href="{{ url_for('InstanceNemo.r_impressum') }}">{{ _('Impressum') }}</a>
-            </li>
-            <li class="nav-item">
-            {% if current_user.is_anonymous %}
-                <a class="nav-link" href="{{ url_for('auth.r_login') }}">{{ _('Einloggen') }}</a>
-            {% else %}
-                <span class="navbar-text px-2"><a href="{{ url_for('auth.r_user', username=current_user.username) }}" title="{{ _('Benutzerprofil ändern') }}">{{ current_user.username }}</a> <small>(<a href="{{ url_for('auth.r_logout') }}">{{ _('ausloggen') }}</a>)</small></span>
-            {% endif %}
+                <a class="nav-link nav" href="{{url_for('InstanceNemo.r_collection', objectId='new_testament')}}">{{ _('Neues Testament') }}</a>
             </li>
             <li class="nav-item active">
-                <a class="nav-link nav" href="{{url_for('InstanceNemo.r_collection', objectId='formulae_collection')}}">{{ _('Formeln') }}</a>
+                <a class="nav-link" href="{{url_for('InstanceNemo.r_collection', objectId='jewish_texts', )}}">{{ _('Jüdische Texte') }}</a>
             </li>
             <li class="nav-item active">
-                <a class="nav-link" href="{{url_for('InstanceNemo.r_collection', objectId='lexicon_entries', )}}">{{ _('Lexikon') }}</a>
-            </li>
-            <li class="nav-item active">
-                <a class="nav-link" href="{{url_for('InstanceNemo.r_collection', objectId='other_collection')}}">{{ _('Andere Texte') }}</a>
+                <a class="nav-link" href="{{url_for('InstanceNemo.r_collection', objectId='commentaries')}}">{{ _('Kommentare') }}</a>
             </li>            
         </ul>
         {% include "search::search_box.html" %}

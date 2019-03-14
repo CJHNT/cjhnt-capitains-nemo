@@ -258,7 +258,7 @@ nav .dropdown:hover .dropdown-menu {
 }
 
 .navbar {
-    background-color: #263d3d;
+    background-color: #3e6abe;
 }
 
 .navbar .navbar-logo {
@@ -367,4 +367,24 @@ nav .dropdown:hover .dropdown-menu {
     padding-bottom: 0rem;
     font-size: 0.875rem;
     line-height: 1.2rem;
+}
+
+.carousel-inner {
+    width: 96%;
+    margin-left: 2%;
+    height: 70vh;
+    overflow: auto;
+}
+
+.carousel-control-prev,.carousel-control-next {
+    width: 1%;
+    color: black;
+}
+
+.carousel-control-prev-icon,.carousel-control-next-icon {
+    background-color: black;
+}
+
+.carousel-indicators .active {
+    background-color: black;
 }

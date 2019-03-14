@@ -35,11 +35,11 @@ nosetests.xml
 .pydevproject
 
 venv
-app.db
+# app.db
 .env
 logs/
 cache/
 .rngs/
 htmlcov/
 old_translations/
-.idea
+.idea/
