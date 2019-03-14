@@ -42,7 +42,6 @@ class Formulae_Testing(flask_testing.TestCase):
                                             "auth": "templates/auth",
                                             "search": "templates/search"},
                                  css=["assets/css/theme.css"], js=["assets/js/empty.js"], static_folder="./assets/")
-        print(app.config)
 
         return app
 
@@ -75,12 +74,10 @@ class TestIndividualRoutes(Formulae_Testing):
             c.get('/auth/user/project.member', follow_redirects=True)
             self.assertMessageFlashed(_('Bitte loggen Sie sich ein, um Zugang zu erhalten.'))
             self.assertTemplateUsed('auth::login.html')
-            c.get('/collections', follow_redirects=True)
+            c.get('/collections/urn:cts:greekLit:tlg0527', follow_redirects=True)
             self.assertTemplateUsed('main::collection.html')
-            c.get('/corpus/urn:cts:greekLit:tlg0527', follow_redirects=True)
-            self.assertTemplateUsed('main::sub_collection.html')
-            c.get('/corpus/urn:cts:cjhnt:nt', follow_redirects=True)
-            self.assertTemplateUsed('main::sub_collection.html')
+            c.get('/collections/urn:cts:cjhnt:nt', follow_redirects=True)
+            self.assertTemplateUsed('main::collection.html')
             # r_references does not work right now.
             # c.get('/text/urn:cts:formulae:stgallen.wartmann0001.lat001/references', follow_redirects=True)
             # self.assertTemplateUsed('main::references.html')
@@ -91,8 +88,8 @@ class TestIndividualRoutes(Formulae_Testing):
             self.assertTemplateUsed('main::multipassage.html')
             c.get('/add_collections/urn:cts:cjhnt:nt.86-Jud.grc001/1', follow_redirects=True)
             self.assertTemplateUsed('main::collection.html')
-            c.get('/add_text/urn:cts:cjhnt:nt/urn:cts:cjhnt:nt.86-Jud.grc001/1', follow_redirects=True)
-            self.assertTemplateUsed('main::sub_collection.html')
+            c.get('/add_collection/urn:cts:cjhnt:nt/urn:cts:cjhnt:nt.86-Jud.grc001/1', follow_redirects=True)
+            self.assertTemplateUsed('main::sub_collections.html')
             c.get('/texts/urn:cts:cjhnt:nt.86-Jud.grc001+urn:cts:cjhnt:commentary.tlg0042006.opp-grc1/passage/1+145', follow_redirects=True)
             self.assertMessageFlashed('Fragmenta In Evangelium Joannis (In Catenis).145 was not found. The whole text is shown here.')
             self.assertTemplateUsed('main::multipassage.html')
@@ -108,12 +105,10 @@ class TestIndividualRoutes(Formulae_Testing):
             self.assertTemplateUsed('main::impressum.html')
             c.get('/auth/user/project.member', follow_redirects=True)
             self.assertTemplateUsed('auth::login.html')
-            c.get('/collections', follow_redirects=True)
+            c.get('/collections/urn:cts:greekLit:tlg0527', follow_redirects=True)
             self.assertTemplateUsed('main::collection.html')
-            c.get('/corpus/urn:cts:greekLit:tlg0527', follow_redirects=True)
-            self.assertTemplateUsed('main::sub_collection.html')
-            c.get('/corpus/urn:cts:cjhnt:nt', follow_redirects=True)
-            self.assertTemplateUsed('main::sub_collection.html')
+            c.get('/collections/urn:cts:cjhnt:nt', follow_redirects=True)
+            self.assertTemplateUsed('main::collection.html')
             # r_references does not work right now.
             # c.get('/text/urn:cts:formulae:stgallen.wartmann0001.lat001/references', follow_redirects=True)
             # self.assertTemplateUsed('main::references.html')
@@ -124,8 +119,8 @@ class TestIndividualRoutes(Formulae_Testing):
             self.assertTemplateUsed('main::multipassage.html')
             c.get('/add_collections/urn:cts:cjhnt:nt.86-Jud.grc001/1', follow_redirects=True)
             self.assertTemplateUsed('main::collection.html')
-            c.get('/add_text/urn:cts:cjhnt:nt/urn:cts:cjhnt:nt.86-Jud.grc001/1', follow_redirects=True)
-            self.assertTemplateUsed('main::sub_collection.html')
+            c.get('/add_collection/urn:cts:cjhnt:nt/urn:cts:cjhnt:nt.86-Jud.grc001/1', follow_redirects=True)
+            self.assertTemplateUsed('main::sub_collections.html')
             # An authenicated user who surfs to the login page should be redirected to index
             c.get('/auth/login', follow_redirects=True)
             self.assertTemplateUsed('main::index.html')
@@ -144,12 +139,10 @@ class TestIndividualRoutes(Formulae_Testing):
             self.assertTemplateUsed('main::impressum.html')
             c.get('/auth/user/project.member', follow_redirects=True)
             self.assertTemplateUsed('auth::login.html')
-            c.get('/collections', follow_redirects=True)
+            c.get('/collections/urn:cts:greekLit:tlg0527', follow_redirects=True)
             self.assertTemplateUsed('main::collection.html')
-            c.get('/corpus/urn:cts:greekLit:tlg0527', follow_redirects=True)
-            self.assertTemplateUsed('main::sub_collection.html')
-            c.get('/corpus/urn:cts:cjhnt:nt', follow_redirects=True)
-            self.assertTemplateUsed('main::sub_collection.html')
+            c.get('/collections/urn:cts:cjhnt:nt', follow_redirects=True)
+            self.assertTemplateUsed('main::collection.html')
             # r_references does not work right now.
             # c.get('/text/urn:cts:formulae:stgallen.wartmann0001.lat001/references', follow_redirects=True)
             # self.assertTemplateUsed('main::references.html')
@@ -160,8 +153,8 @@ class TestIndividualRoutes(Formulae_Testing):
             self.assertTemplateUsed('main::multipassage.html')
             c.get('/add_collections/urn:cts:cjhnt:nt.86-Jud.grc001/1', follow_redirects=True)
             self.assertTemplateUsed('main::collection.html')
-            c.get('/add_text/urn:cts:cjhnt:nt/urn:cts:cjhnt:nt.86-Jud.grc001/1', follow_redirects=True)
-            self.assertTemplateUsed('main::sub_collection.html')
+            c.get('/add_collection/urn:cts:cjhnt:nt/urn:cts:cjhnt:nt.86-Jud.grc001/1', follow_redirects=True)
+            self.assertTemplateUsed('main::sub_collections.html')
             # An authenicated user who surfs to the login page should be redirected to index
             c.get('/auth/login', follow_redirects=True)
             self.assertTemplateUsed('main::index.html')
@@ -656,7 +649,7 @@ class TestErrors(Formulae_Testing):
 
     def test_UnknownCollection_error(self):
         with self.client as c:
-            response = c.get('/corpus/urn:cts:formulae:buendner', follow_redirects=True)
+            response = c.get('/collections/urn:cts:cjhnt:newtestament', follow_redirects=True)
             self.assert404(response, 'An Unknown Collection Error should also return 404.')
             self.assertTemplateUsed("errors::unknown_collection.html")
 

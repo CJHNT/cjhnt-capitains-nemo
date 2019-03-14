@@ -15,6 +15,7 @@ import re
 from datetime import date
 from string import punctuation
 from .models import NtComRels
+from operator import itemgetter
 
 
 class NemoFormulae(Nemo):
@@ -23,18 +24,19 @@ class NemoFormulae(Nemo):
         ("/", "r_index", ["GET"]),
         ("/collections", "r_collections", ["GET"]),
         ("/collections/<objectId>", "r_collection", ["GET"]),
-        ("/corpus/<objectId>", "r_corpus", ["GET"]),
+        ("/work/<objectId>", "r_work", ["GET"]),
         ("/text/<objectId>/references", "r_references", ["GET"]),
         ("/texts/<objectIds>/passage/<subreferences>", "r_multipassage", ["GET"]),
         ("/add_collections/<objectIds>/<reffs>", "r_add_text_collections", ["GET"]),
         ("/add_collection/<objectId>/<objectIds>/<reffs>", "r_add_text_collection", ["GET"]),
-        ("/add_text/<objectId>/<objectIds>/<reffs>", "r_add_text_corpus", ["GET"]),
+        ("/add_text/<objectId>/<objectIds>/<reffs>", "r_add_text_work", ["GET"]),
         ("/lexicon/<objectId>", "r_lexicon", ["GET"]),
         ("/lang", "r_set_language", ["GET", "POST"]),
         ("/sub_elements/<coll>/<objectIds>/<reffs>", "r_add_sub_elements", ["GET"]),
         ("/sub_elements/<coll>", "r_get_sub_elements", ["GET"]),
         ("/imprint", "r_impressum", ["GET"]),
-        ("/nt_com/<nt_book>/passage/<subreference>", "r_commentary_view", ['GET'])
+        ("/nt_com/<objectIds>/passage/<subreferences>", "r_commentary_view", ['GET']),
+        ("/text/<objectId>/passage", "r_first_passage", ["GET"])
     ]
     SEMANTIC_ROUTES = [
         "r_collection", "r_references", "r_multipassage"
@@ -231,19 +233,13 @@ class NemoFormulae(Nemo):
 
     def r_collection(self, objectId, lang=None):
         data = super(NemoFormulae, self).r_collection(objectId, lang=lang)
-        if self.check_project_team() is False:
-            data['collections']['members'] = [x for x in data['collections']['members'] if x['id'] in self.OPEN_COLLECTIONS]
-        if len(data['collections']['members']) == 0:
-            if "formulae" in objectId:
-                flash(_('Die Formulae Andecavensis sind in der Endredaktion und werden bald zur Verfügung stehen.'))
-            else:
-                flash(_('Diese Sammlung steht unter Copyright und darf hier nicht gezeigt werden.'))
-        elif len(data['collections']['members']) == 1:
-            return redirect(url_for('.r_corpus', objectId=data['collections']['members'][0]['id'], lang=lang))
-        data['template'] = "main::sub_collections.html"
+        new_members = []
+        for member in sorted(data['collections']['members'], key=itemgetter('id')):
+            new_members.append([member, self.make_members(self.resolver.getMetadata(member['id']), lang=lang)])
+        data['collections']['members'] = new_members
         return data
 
-    def r_corpus(self, objectId, lang=None):
+    def r_work(self, objectId, lang=None):
         """ Route to browse collections and add another text to the view
 
         :param objectId: Collection identifier
@@ -251,55 +247,13 @@ class NemoFormulae(Nemo):
         :param lang: Lang in which to express main data
         :type lang: str
         :return: Template and collections contained in given collection
-        :rtype: {str: Any}
+        :rtype: [(str, list)]
         """
         collection = self.resolver.getMetadata(objectId)
-        r = {}
-        if 'elexicon' in objectId:
-            template = "main::elex_collection.html"
-        elif 'salzburg' in objectId:
-            template = "main::salzburg_collection.html"
-        else:
-            template = "main::sub_collection.html"
-        for m in list(self.resolver.getMetadata(collection.id).readableDescendants):
-            if self.check_project_team() is True or m.id in self.open_texts:
-                if "salzburg" in m.id:
-                    par = m.parent.id.split('-')[1:]
-                    if len(par) == 2:
-                        full_par = (self.SALZBURG_MAPPING[par[0]], 'Einleitung' if par[1] == 'intro' else 'Vorrede')
-                    else:
-                        p = re.match(r'(\D+)(\d+)', par[0])
-                        if p:
-                            full_par = (self.SALZBURG_MAPPING[p.group(1)], p.group(2).lstrip('0'))
-                        else:
-                            full_par = (self.SALZBURG_MAPPING[par[0]], self.SALZBURG_MAPPING[par[0]])
-                    par = '-'.join(par)
-                    if 'n' in par:
-                        par = 'z' + par
-                    par = (par, full_par)
-                    metadata = (m.id, self.LANGUAGE_MAPPING[m.lang])
-                elif "elexicon" in m.id:
-                    par = m.parent.id.split('.')[-1][0].capitalize()
-                    metadata = (m.id, m.parent.id.split('.')[-1], self.LANGUAGE_MAPPING[m.lang])
-                else:
-                    par = re.sub(r'.*?(\d+)', r'\1', m.parent.id)
-                    metadata = (m.id, self.LANGUAGE_MAPPING[m.lang])
-                if par in r.keys():
-                    r[par]["versions"].append(metadata)
-                else:
-                    r[par] = {"short_regest": str(m.get_description()).split(':')[0] if 'andecavensis' in m.id else '',
-                              # short_regest will change to str(m.get_cts_property('short-regest')) and
-                              # regest will change to str(m.get_description()) once I have reconverted the texts
-                              "regest": [':'.join(str(m.get_description()).split(':')[1:])] if 'andecavensis' in m.id else str(m.get_description()).split('***'),
-                              "dating": str(m.metadata.get_single(DCTERMS.temporal)),
-                              "ausstellungsort": str(m.metadata.get_single(DCTERMS.spatial)),
-                              "versions": [metadata], 'name': par.lstrip('0') if type(par) is str else ''}
-        for k, v in r.items():
-            r[k]['versions'] = sorted(v['versions'], reverse=True)
-        if len(r) == 0:
-            flash(_('Diese Sammlung steht unter Copyright und darf hier nicht gezeigt werden.'))
+        reffs = self.resolver.getReffs(objectId)
+        r = [(reff, self.resolver.getReffs(objectId, subreference=reff)) for reff in reffs]
         return {
-            "template": template,
+            "template": "main::sub_collection.html",
             "collections": {
                 "current": {
                     "label": str(collection.get_label(lang)),
@@ -326,7 +280,7 @@ class NemoFormulae(Nemo):
             "template": "main::collection.html",
             "current_label": collection.get_label(lang),
             "collections": {
-                "members": self.make_members(collection, lang=lang)
+                "members": [[member, self.make_members(self.resolver.getMetadata(member['id']), lang=lang)] for member in self.make_members(collection, lang=lang)]
             },
             "prev_texts": objectIds,
             "prev_reffs": reffs
@@ -343,14 +297,15 @@ class NemoFormulae(Nemo):
         :rtype: {str: Any}
         """
         collection = self.resolver.getMetadata(objectId)
-        members = self.make_members(collection, lang=lang)
+        members = [[member, self.make_members(self.resolver.getMetadata(member['id']), lang=lang)] for member in self.make_members(collection, lang=lang)]
+        """
         if self.check_project_team() is False:
             members = [x for x in members if x['id'] in self.OPEN_COLLECTIONS]
         if len(members) == 1:
             return redirect(url_for('.r_add_text_corpus', objectId=members[0]['id'],
                                     objectIds=objectIds, reffs=reffs, lang=lang))
         elif len(members) == 0:
-            flash(_('Diese Sammlung steht unter Copyright und darf hier nicht gezeigt werden.'))
+            flash(_('Diese Sammlung steht unter Copyright und darf hier nicht gezeigt werden.'))"""
         return {
             "template": "main::sub_collections.html",
             "collections": {
@@ -367,7 +322,7 @@ class NemoFormulae(Nemo):
             "prev_reffs": reffs
         }
 
-    def r_add_text_corpus(self, objectId, objectIds, reffs, lang=None):
+    def r_add_text_work(self, objectId, objectIds, reffs, lang=None):
         """ Route to browse collections and add another text to the view
 
         :param objectId: Collection identifier
@@ -377,7 +332,7 @@ class NemoFormulae(Nemo):
         :return: Template and collections contained in given collection
         :rtype: {str: Any}
         """
-        initial = self.r_corpus(objectId)
+        initial = self.r_work(objectId)
         initial.update({'prev_texts': objectIds, 'prev_reffs': reffs})
         return initial
 
@@ -492,7 +447,7 @@ class NemoFormulae(Nemo):
             flash(_('Mindestens ein Text, den Sie anzeigen möchten, ist nicht verfügbar.'))
         return passage_data
 
-    def r_commentary_view(self, nt_book, subreference, lang=None, result_sents=''):
+    def r_commentary_view(self, objectIds, subreferences, lang=None, result_sents=''):
         """ Retrieve the appropriate NT passage as well as the commentary section(s) that go with it
 
         :param nt_book: the id of the NT book
@@ -507,13 +462,13 @@ class NemoFormulae(Nemo):
         :rtype: {str: Any}
         """
         def split_comms(com):
-            id = ':'.join(com.split(':')[:-1]).replace('greekLit', 'cjhnt')
+            ident = ':'.join(com.split(':')[:-1]).replace('greekLit', 'cjhnt')
             ref = com.split(':')[-1]
-            return {'id': id, 'ref': ref}
+            return {'id': ident, 'ref': ref}
 
-        comms = [split_comms(x.com) for x in NtComRels.query.filter_by(nt=nt_book + ':' + subreference).all()]
-        passage_data = {'template': 'main::commentary_view.html', 'comm_sections': [], "nt": self.r_passage(nt_book,
-                                                                                                            subreference,
+        comms = [split_comms(x.com) for x in NtComRels.query.filter_by(nt=objectIds + ':' + subreferences).all()]
+        passage_data = {'template': 'main::commentary_view.html', 'comm_sections': [], "nt": self.r_passage(objectIds,
+                                                                                                            subreferences,
                                                                                                             lang=lang)}
         for com in comms:
             d = self.r_passage(com['id'], com['ref'], lang=lang)

@@ -388,3 +388,28 @@ nav .dropdown:hover .dropdown-menu {
 .carousel-indicators .active {
     background-color: black;
 }
+
+#formulae-logo-header {
+    height: 103px;
+    width: 75px;
+}
+
+#jena-logo-header {
+    height: 103px;
+    width: 100px;
+}
+
+#leipzig-logo-header {
+    height: 108px;
+    width: 256px;
+}
+
+#liebenzell-logo-header {
+    height: 103px;
+    width: 225px;
+}
+
+#greifswald-logo-header {
+    height: 93px;
+    width: 317px;
+}
