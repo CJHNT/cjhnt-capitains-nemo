@@ -31,8 +31,8 @@ class NemoFormulae(Nemo):
         ("/add_collection/<objectId>/<objectIds>/<reffs>", "r_add_text_collection", ["GET"]),
         ("/add_text/<objectId>/<objectIds>/<reffs>", "r_add_text_work", ["GET"]),
         ("/lang", "r_set_language", ["GET", "POST"]),
-        ("/sub_elements/<coll>/<objectIds>/<reffs>", "r_add_sub_elements", ["GET"]),
-        ("/sub_elements/<coll>", "r_get_sub_elements", ["GET"]),
+        # ("/sub_elements/<coll>/<objectIds>/<reffs>", "r_add_sub_elements", ["GET"]),
+        # ("/sub_elements/<coll>", "r_get_sub_elements", ["GET"]),
         ("/imprint", "r_impressum", ["GET"]),
         ("/nt_com/<objectIds>/passage/<subreferences>", "r_commentary_view", ['GET']),
         ("/text/<objectId>/passage", "r_first_passage", ["GET"])
