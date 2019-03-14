@@ -489,6 +489,7 @@ class NemoFormulae(Nemo):
 
         return str(xslt(etree.fromstring(text)))
 
+    ''' I may add these back in later.
     def r_add_sub_elements(self, coll, objectIds, reffs, lang=None):
         """ A convenience function to return all sub-corpora in all collections
 
@@ -506,3 +507,4 @@ class NemoFormulae(Nemo):
         texts = self.r_add_text_collection(coll, objectIds, reffs, lang=lang)
         texts["template"] = 'main::sub_element_snippet.html'
         return texts
+        '''

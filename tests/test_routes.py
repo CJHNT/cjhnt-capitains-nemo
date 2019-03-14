@@ -36,7 +36,8 @@ class Formulae_Testing(flask_testing.TestCase):
         app = create_app(TestConfig)
         self.nemo = NemoFormulae(name="InstanceNemo", resolver=NautilusCTSResolver(app.config['CORPUS_FOLDERS'],
                                                                                    dispatcher=organizer),
-                                 app=app, base_url="", transform={"default": "components/epidoc.xsl"},
+                                 app=app, base_url="", transform={"default": "components/epidoc.xsl",
+                                                                  "notes": "components/extract_notes.xsl"},
                                  templates={"main": "templates/main",
                                             "errors": "templates/errors",
                                             "auth": "templates/auth",
@@ -119,6 +120,7 @@ class TestIndividualRoutes(Formulae_Testing):
             self.assertTemplateUsed('main::sub_collection.html')
             c.get('/nt_com/urn:cts:cjhnt:nt.86-Jud.grc001/passage/1.1', follow_redirects=True)
             self.assertTemplateUsed('main::commentary_view.html')
+            self.assertFalse(self.nemo.check_project_team())
 
     def test_authorized_project_member(self):
         """ Make sure that all routes are open to project members"""
@@ -161,6 +163,7 @@ class TestIndividualRoutes(Formulae_Testing):
             self.assertTemplateUsed('main::sub_collection.html')
             c.get('/nt_com/urn:cts:cjhnt:nt.86-Jud.grc001/passage/1.1', follow_redirects=True)
             self.assertTemplateUsed('main::commentary_view.html')
+            self.assertTrue(self.nemo.check_project_team())
 
     def test_authorized_normal_user(self):
         """ Make sure that all routes are open to normal users but that some texts are not available"""
@@ -203,6 +206,7 @@ class TestIndividualRoutes(Formulae_Testing):
             self.assertTemplateUsed('main::sub_collection.html')
             c.get('/nt_com/urn:cts:cjhnt:nt.86-Jud.grc001/passage/1.1', follow_redirects=True)
             self.assertTemplateUsed('main::commentary_view.html')
+            self.assertFalse(self.nemo.check_project_team())
 
     @patch("formulae.search.routes.advanced_query_index")
     def test_advanced_search_results(self, mock_search):
