@@ -237,9 +237,6 @@ class TestIndividualRoutes(Formulae_Testing):
                   follow_redirects=True)
             self.assertEqual(mock_search.mock_calls, [], 'mock_search should not be called.')
             self.assertTemplateUsed('main::index.html')
-            c.get('/search/results?source=simple&corpus=all&sort=urn&q=λόγος+εἰμί&submit=True')
-            mock_search.assert_called_with(corpus=['all'], field='text', fuzziness='0', in_order='False', page=1,
-                                           per_page=10, q='λόγος εἰμί', slop='0', sort='urn')
             c.get('/search/advanced_search?q=&fuzziness=0&slop=0&submit=Search')
             self.assertMessageFlashed(_('Bitte geben Sie Daten in mindestens einem Feld ein.'))
             c.get('/search/advanced_search?q=λόγος+εἰμί&lemma_search=y&fuzziness=0&slop=200&submit=Search')
@@ -250,13 +247,15 @@ class TestIndividualRoutes(Formulae_Testing):
     def test_simple_search_results(self, mock_search):
         """ Make sure that the correct search results are passed to the search results form"""
         params = dict(corpus='new_testament%2Bjewish', q='regnum', sort='urn')
-        mock_search.return_value = [[], 0]
+        mock_search.return_value = [[], 0, {}]
         with self.client as c:
             c.post('/auth/login', data=dict(username='project.member', password="some_password"),
                    follow_redirects=True)
             response = c.get('/search/simple?corpus=new_testament&corpus=jewish&q=Regnum')
             for p, v in params.items():
                 self.assertRegex(str(response.location), r'{}={}'.format(p, v))
+            c.get('/search/results?source=simple&corpus=all&sort=urn&q=λόγος+εἰμί&submit=True')
+            mock_search.assert_called_with(['all'], 'text', 'λόγος εἰμί', 1, 10, sort='urn')
 
     def test_search_result_highlighting(self):
         """ Make sure that highlighting of search results works correctly"""
