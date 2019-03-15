@@ -37,7 +37,7 @@ class FakeElasticsearch(object):
     def save_request(self, body):
         fileName = self.buildPath('_req.json')
         with open(fileName, 'w') as f:
-            return json.dump(body, f, indent=2)
+            return json.dump(body, f, indent=2, ensure_ascii=False)
 
     def save_response(self, resp):
         fileName = self.buildPath('_resp.json')
@@ -46,12 +46,12 @@ class FakeElasticsearch(object):
             resp['hits']['hits'][i]['_source']['lemmas'] = 'text'
             resp['hits']['hits'][i]['_source']['autocomplete'] = 'text'
         with open(fileName, 'w') as f:
-            return json.dump(resp, f, indent=2)
+            return json.dump(resp, f, indent=2, ensure_ascii=False)
 
     def save_ids(self, ids):
         fileName = self.buildPath('_ids.json')
         with open(fileName, 'w') as f:
-            return json.dump(ids, f, indent=2)
+            return json.dump(ids, f, indent=2, ensure_ascii=False)
 
     def load_ids(self):
         fileName = self.buildPath('_ids.json')

@@ -12,21 +12,12 @@
             <table id="search-stat-table">
             <tr>
             <th>{{ _('Corpus') }}</th>
-            <th>{{ _('Datierung') }}</th>
             </tr>
             <tr>
                 <td>
                 {% for search_corp, corp_hits in aggs['corpus']['buckets']|dictsort %}
                 {% if corp_hits['doc_count'] != 0 %}
                 <span class="dropdown-item-text search-stat">{{ search_corp }}: {{ corp_hits['doc_count'] }}</span>
-                {% endif %}
-                {% endfor %}
-                </td>
-                <td>
-                {% if aggs['no_date']['doc_count'] != 0 %}<span class="dropdown-item-text search-stat">{{ _('k.A.') }}: {{ aggs['no_date']['doc_count'] }}</span>{% endif %}
-                {% for cent in aggs['range']['buckets'] %}
-                {% if cent['doc_count'] != 0 %}
-                <span class="dropdown-item-text search-stat">{{ cent['key'] }}: {{ cent['doc_count'] }}</span>
                 {% endif %}
                 {% endfor %}
                 </td>
@@ -45,19 +36,16 @@
         <table id="results-sort-table" class="table table-sm table-bordered">
             <thead>
                 <tr>
-                    <th colspan="4">{{ _('Sortieren nach') }}</th>
+                    <th colspan="2">{{ _('Sortieren nach') }}</th>
                 </tr>
                 <tr>
                     <th colspan="2">{{ _('Name') }}</th>
-                    <th colspan="2">{{ _('Datierung') }}</th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
                     <td><a href="{{ sort_urls['urn'] }}">{{ _('Aufsteigend') }}</a></td>
                     <td><a href="{{ sort_urls['urn_desc'] }}">{{ _('Absteigend') }}</a></td>
-                    <td><a href="{{ sort_urls['min_date_asc'] }}">{{ _('Aufsteigend') }}</a></td>
-                    <td><a href="{{ sort_urls['min_date_desc'] }}">{{ _('Absteigend') }}</a></td>
                 </tr>
             </tbody>
         </table>
