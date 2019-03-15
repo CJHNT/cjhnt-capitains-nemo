@@ -583,6 +583,20 @@ class TestES(Formulae_Testing):
         self.assertEqual(ids, [{"id": x['id']} for x in actual])
 
     @patch.object(Elasticsearch, "search")
+    def test_wildcard_text_search(self, mock_search):
+        test_args = OrderedDict([("corpus", "all"), ("field", "text"), ("q", 'λ?γος'), ("fuzziness", "0"),
+                                 ("in_order", "False"), ('slop', '0'), ('sort', 'urn')])
+        fake = FakeElasticsearch(self.build_file_name(test_args), 'advanced_search')
+        body = fake.load_request()
+        resp = fake.load_response()
+        ids = fake.load_ids()
+        mock_search.return_value = resp
+        test_args['corpus'] = test_args['corpus'].split('+')
+        actual, _, _ = advanced_query_index(**test_args)
+        mock_search.assert_called_with(index=test_args['corpus'], doc_type="", body=body)
+        self.assertEqual(ids, [{"id": x['id']} for x in actual])
+
+    @patch.object(Elasticsearch, "search")
     def test_lemma_advanced_search(self, mock_search):
         test_args = OrderedDict([("corpus", "all"), ("field", "lemmas"), ("q", 'λόγος'), ("fuzziness", "0"),
                                  ("in_order", "False"), ('slop', '0'), ('sort', 'urn')])
@@ -612,6 +626,17 @@ class TestES(Formulae_Testing):
         self.assertEqual(ids, [{"id": x['id']} for x in actual])
 
     @patch.object(Elasticsearch, "search")
+    def test_lemma_advanced_search_with_wildcard(self, mock_search):
+        test_args = OrderedDict([("corpus", "all"), ("field", "lemmas"), ("q", 'λ?γος'), ("fuzziness", "0"),
+                                 ("in_order", "False"), ('slop', '0'), ('sort', 'urn')])
+        mock_search.return_value = [], 0, {}
+        with self.client:
+            ids, hits, agg = advanced_query_index(**test_args)
+            self.assertEqual(ids, [])
+            self.assertEqual(hits, 0)
+            self.assertMessageFlashed(_("'Wildcard'-Zeichen (\"*\" and \"?\") sind bei der Lemmasuche nicht möglich."))
+
+    @patch.object(Elasticsearch, "search")
     def test_simple_multi_corpus_search(self, mock_search):
         test_args = OrderedDict([("index", ['new_testament', "jewish"]), ("query", 'λόγος'), ("field", "text"),
                                  ("page", 1), ("per_page", self.app.config["POSTS_PER_PAGE"]), ('sort', 'urn')])
@@ -639,10 +664,14 @@ class TestES(Formulae_Testing):
         body['query']['span_near']['clauses'] = [{'span_multi': {'match': {'wildcard': {'text': 'λ?γος'}}}}]
         query_index(**test_args)
         mock_search.assert_called_with(index=['new_testament', "jewish"], doc_type="", body=body)
+        test_args['index'] = ''
+        mt_ids, mt_total, mt_agg = query_index(**test_args)
+        self.assertEqual(mt_ids, [])
+        self.assertEqual(mt_total, 0)
+        self.assertEqual(mt_agg, {})
         with self.client:
             self.app.config["POSTS_PER_PAGE"] = 2
             total_pages = int(ceil(total / self.app.config['POSTS_PER_PAGE']))
-            print(total_pages)
             r = self.client.get('/search/simple?index=&q=λόγος', follow_redirects=True)
             self.assertMessageFlashed(_('Sie müssen mindestens eine Sammlung für die Suche auswählen ("NT" und/oder "Jüdische Texte")') +
                                       _(' Resultate aus dem Neuen Testament und Jüdischen Texten werden hier gezeigt.'))
@@ -656,24 +685,43 @@ class TestES(Formulae_Testing):
 
     @patch.object(Elasticsearch, "search")
     def test_suggest_word_search_completion(self, mock_search):
-        test_args = OrderedDict([("corpus", "nt+tlg0527"), ("field", "autocomplete"), ("q", 'λόγο'), ("fuzziness", "0"),
+        test_args = OrderedDict([("corpus", "all"), ("field", "autocomplete"), ("q", 'ἀγαπητῷ'), ("fuzziness", "0"),
                                  ("in_order", "False"), ('slop', '0'), ('sort', 'urn')])
         fake = FakeElasticsearch(self.build_file_name(test_args), 'advanced_search')
         resp = fake.load_response()
-        expected = ['λόγο',
-                    'λόγοι μου οὐ μὴ παρέλθωσιν',
-                    'λόγοις διὰ ταῦτα γὰρ ἔρχεται ἡ ὀργ',
-                    'λόγοις σου καὶ ⸀ νικήσεις ἐν τῷ κρίνεσθα',
-                    'λόγον βεβαιοῦντος διὰ τῶν ἐπακολουθούντω',
-                    'λόγον γὰρ συντελῶν καὶ ⸀ συντέμνων',
-                    'λόγον εἰς τὸν υἱὸν τοῦ ἀνθρώπου ἀφεθήσετα',
-                    'λόγον καθὼς ἠδύναντο ἀκούειν · χωρὶ',
-                    'λόγον μου τηρήσει καὶ ὁ πατήρ μου',
-                    'λόγον σπείρει οὗτοι δέ εἰσιν οἱ παρὰ']
+        expected = ['', 'ἀγαπητῷ καὶ συνεργῷ ἡμῶν καὶ Ἀπφίᾳ']
         mock_search.return_value = resp
         test_args.pop('q')
         results = suggest_word_search('λόγο', **test_args)
         self.assertEqual(results[:10], expected, 'The true results should match the expected results.')
+
+    @patch.object(Elasticsearch, "search")
+    def test_single_lemma_highlighting(self, mock_search):
+        test_args = OrderedDict([("corpus", "all"), ("field", "lemmas"), ("q", 'προσοφείλω'), ("fuzziness", "0"),
+                                 ("in_order", "False"), ('slop', '0'), ('sort', 'urn')])
+        fake = FakeElasticsearch(self.build_file_name(test_args), 'advanced_search')
+        resp = fake.load_response()
+        sents = [{'sents': ['· ἵνα μὴ λέγω σοι ὅτι καὶ σεαυτόν μοι προσοφείλεις. ναί, ἀδελφέ, '
+                            'ἐγώ σου ὀναίμην ἐν κυρίῳ · ἀνάπαυσόν μου']}]
+        mock_search.return_value = resp
+        test_args['corpus'] = test_args['corpus'].split('+')
+        test_args['q'] = test_args['q'].replace('+', ' ')
+        actual, _, _ = advanced_query_index(**test_args)
+        self.assertEqual(sents, [{"sents": x['sents']} for x in actual])
+
+    @patch.object(Elasticsearch, "search")
+    def test_multiple_lemma_highlighting(self, mock_search):
+        test_args = OrderedDict([("corpus", "all"), ("field", "lemmas"), ("q", 'ἐγώ+προσοφείλω'), ("fuzziness", "0"),
+                                 ("in_order", "False"), ('slop', '0'), ('sort', 'urn')])
+        fake = FakeElasticsearch(self.build_file_name(test_args), 'advanced_search')
+        resp = fake.load_response()
+        sents = [{'sents': ['Παῦλος ἔγραψα τῇ ἐμῇ χειρί, ἐγὼ ἀποτίσω · ἵνα μὴ λέγω σοι ὅτι καὶ σεαυτόν μοι προσοφείλεις. ναί, ἀδελφέ, '
+                            'ἐγώ σου ὀναίμην ἐν κυρίῳ · ἀνάπαυσόν μου τὰ σπλάγχνα ἐν']}]
+        mock_search.return_value = resp
+        test_args['corpus'] = test_args['corpus'].split('+')
+        test_args['q'] = test_args['q'].replace('+', ' ')
+        actual, _, _ = advanced_query_index(**test_args)
+        self.assertEqual(sents, [{"sents": x['sents']} for x in actual])
 
 
 class TestErrors(Formulae_Testing):

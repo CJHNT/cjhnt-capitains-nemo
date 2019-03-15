@@ -1,14 +1,14 @@
 {
-  "took": 222,
+  "took": 80,
   "timed_out": false,
   "_shards": {
-    "total": 2,
-    "successful": 2,
+    "total": 3,
+    "successful": 3,
     "skipped": 0,
     "failed": 0
   },
   "hits": {
-    "total": 47,
+    "total": 82,
     "max_score": null,
     "hits": [
       {
@@ -286,13 +286,13 @@
     "corpus": {
       "buckets": {
         "LXX": {
-          "doc_count": 29
+          "doc_count": 33
         },
         "NT": {
           "doc_count": 18
         },
         "Philo": {
-          "doc_count": 0
+          "doc_count": 31
         }
       }
     }

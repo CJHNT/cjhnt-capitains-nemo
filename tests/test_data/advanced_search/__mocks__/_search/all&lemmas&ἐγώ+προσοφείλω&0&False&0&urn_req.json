@@ -9,8 +9,20 @@
                 "span_multi": {
                   "match": {
                     "fuzzy": {
-                      "autocomplete": {
-                        "value": "λόγο",
+                      "lemmas": {
+                        "value": "ἐγώ",
+                        "fuzziness": "0"
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "span_multi": {
+                  "match": {
+                    "fuzzy": {
+                      "lemmas": {
+                        "value": "προσοφείλω",
                         "fuzziness": "0"
                       }
                     }
@@ -50,19 +62,5 @@
         }
       }
     }
-  },
-  "highlight": {
-    "fields": {
-      "autocomplete": {
-        "fragment_size": 1000
-      }
-    },
-    "pre_tags": [
-      "</small><strong>"
-    ],
-    "post_tags": [
-      "</strong><small>"
-    ],
-    "encoder": "html"
   }
 }

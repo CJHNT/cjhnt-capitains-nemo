@@ -16,14 +16,6 @@ AGGREGATIONS = {'corpus': {'filters': {'filters': {'NT': {'match': {'_type': 'nt
 def build_sort_list(sort_str):
     if sort_str == 'urn':
         return 'urn'
-    if sort_str == 'min_date_asc':
-        return [{'all_dates': {'order': 'asc', 'mode': 'min'}}, 'urn']
-    if sort_str == 'max_date_asc':
-        return [{'all_dates': {'order': 'asc', 'mode': 'max'}}, 'urn']
-    if sort_str == 'min_date_desc':
-        return [{'all_dates': {'order': 'desc', 'mode': 'min'}}, 'urn']
-    if sort_str == 'max_date_desc':
-        return [{'all_dates': {'order': 'desc', 'mode': 'max'}}, 'urn']
     if sort_str == 'urn_desc':
         return [{'urn': {'order': 'desc'}}]
 
@@ -121,7 +113,7 @@ def advanced_query_index(corpus=['all'], field="text", q='', page=1, per_page=10
         fuzz = '0'
         if '*' in q or '?' in q:
             flash(_("'Wildcard'-Zeichen (\"*\" and \"?\") sind bei der Lemmasuche nicht möglich."))
-            return [], 0
+            return [], 0, {}
     else:
         fuzz = fuzziness
     if q:
@@ -177,7 +169,7 @@ def advanced_query_index(corpus=['all'], field="text", q='', page=1, per_page=10
     else:
         ids = [{'id': hit['_id'], 'info': hit['_source'], 'sents': []} for hit in search['hits']['hits']]
     # It may be good to comment this block out when I am not saving requests, though it probably won't affect performance.
-    if current_app.config["SAVE_REQUESTS"]:# and 'autocomplete' not in field:
+    if current_app.config["SAVE_REQUESTS"] and 'autocomplete' not in field:
         req_name = "{corpus}&{field}&{q}&{fuzz}&{in_order}&{slop}&{sort}".format(corpus='+'.join(corpus), field=field,
                                                                                  q=q.replace(' ', '+'), fuzz=fuzziness,
                                                                                  in_order=in_order, slop=slop,
