@@ -3,7 +3,7 @@ from capitains_nautilus.cts.resolver import NautilusCTSResolver
 from formulae import create_app, db, mail
 from formulae.nemo import NemoFormulae
 from formulae.models import User
-from formulae.search.Search import advanced_query_index, query_index, build_sort_list
+from formulae.search.Search import advanced_query_index, query_index, build_sort_list, suggest_word_search
 from formulae.dispatcher_builder import organizer
 import flask_testing
 from formulae.search.forms import AdvancedSearchForm, SearchForm
@@ -18,6 +18,8 @@ from collections import OrderedDict
 import os
 from MyCapytain.common.constants import Mimetypes
 from flask import Markup, url_for, abort
+import re
+from math import ceil
 
 
 class TestConfig(Config):
@@ -90,6 +92,8 @@ class TestIndividualRoutes(Formulae_Testing):
             self.assertTemplateUsed('main::index.html')
             c.get('/imprint', follow_redirects=True)
             self.assertTemplateUsed('main::impressum.html')
+            c.get('/search/doc', follow_redirects=True)
+            self.assertTemplateUsed('search::documentation.html')
             c.get('/auth/user/project.member', follow_redirects=True)
             self.assertMessageFlashed(_('Bitte loggen Sie sich ein, um Zugang zu erhalten.'))
             self.assertTemplateUsed('auth::login.html')
@@ -225,9 +229,22 @@ class TestIndividualRoutes(Formulae_Testing):
             for p, v in params.items():
                 self.assertIn('{}={}'.format(p, v), str(response.location))
             params['q'] = 'λόγος+εἰμί'
-            c.get('/search/advanced_search?q=λόγος+εἰμί&lemma_search=y&fuzziness=0&slop=0&submit=Search', follow_redirects=True)
-            mock_search.assert_called_with(corpus=['all'], field='lemmas', fuzziness='0', in_order='False', page=1,
+            c.get('/search/results?source=advanced&corpus=all&sort=urn&q=λόγος+εἰμί&fuzziness=0&slop=0&in_order=False&submit=True')
+            mock_search.assert_called_with(corpus=['all'], field='text', fuzziness='0', in_order='False', page=1,
                                            per_page=10, q='λόγος εἰμί', slop='0', sort='urn')
+            mock_search.mock_calls = []
+            c.get('/search/results?corpus=all&sort=urn&q=λόγος+εἰμί&fuzziness=0&slop=0&in_order=False&submit=True',
+                  follow_redirects=True)
+            self.assertEqual(mock_search.mock_calls, [], 'mock_search should not be called.')
+            self.assertTemplateUsed('main::index.html')
+            c.get('/search/results?source=simple&corpus=all&sort=urn&q=λόγος+εἰμί&submit=True')
+            mock_search.assert_called_with(corpus=['all'], field='text', fuzziness='0', in_order='False', page=1,
+                                           per_page=10, q='λόγος εἰμί', slop='0', sort='urn')
+            c.get('/search/advanced_search?q=&fuzziness=0&slop=0&submit=Search')
+            self.assertMessageFlashed(_('Bitte geben Sie Daten in mindestens einem Feld ein.'))
+            c.get('/search/advanced_search?q=λόγος+εἰμί&lemma_search=y&fuzziness=0&slop=200&submit=Search')
+            self.assertMessageFlashed('slop: ' + _('Der Suchradius muss zwischen 0 und 100 liegen'))
+
 
     @patch("formulae.search.routes.query_index")
     def test_simple_search_results(self, mock_search):
@@ -367,6 +384,8 @@ class TestForms(Formulae_Testing):
         form = AdvancedSearchForm(corpus=['some corpus'])
         form.corpus.data = ['some corpus']
         self.assertFalse(form.validate(), "Invalid corpus choice should not validate")
+        form = AdvancedSearchForm(slop=200)
+        self.assertFalse(form.validate(), "Invalid slop choice should not validate")
 
     def test_validate_valid_registration_form(self):
         """ Ensure that correct data for new user registration validates"""
@@ -531,6 +550,25 @@ class TestES(Formulae_Testing):
     def build_file_name(self, fake_args):
         return '&'.join(["{}".format(str(v)) for k, v in fake_args.items()])
 
+    def test_return_when_no_es(self):
+        """ Make sure that when ElasticSearch is not active, calls to the search functions return empty results instead of errors"""
+        self.app.elasticsearch = None
+        simple_test_args = OrderedDict([("index", ['formulae', "chartae"]), ("query", 'regnum'), ("field", "text"),
+                                        ("page", 1), ("per_page", self.app.config["POSTS_PER_PAGE"]), ('sort', 'urn')])
+        hits, total, aggs = query_index(**simple_test_args)
+        self.assertEqual(hits, [], 'Hits should be an empty list.')
+        self.assertEqual(total, 0, 'Total should be 0')
+        self.assertEqual(aggs, {}, 'Aggregations should be an empty dictionary.')
+        test_args = OrderedDict([("corpus", "all"), ("field", "text"), ("q", ''), ("fuzziness", "0"), ('in_order', 'False'),
+                                 ("year", 0), ('slop', '0'), ("month", 0), ("day", 0), ("year_start", 814),
+                                 ("month_start", 10), ("day_start", 29), ("year_end", 814), ("month_end", 11),
+                                 ("day_end", 20), ('date_plus_minus', 0), ('exclusive_date_range', 'False'),
+                                 ("composition_place", ''), ('sort', 'urn')])
+        hits, total, aggs = advanced_query_index(**test_args)
+        self.assertEqual(hits, [], 'Hits should be an empty list.')
+        self.assertEqual(total, 0, 'Total should be 0')
+        self.assertEqual(aggs, {}, 'Aggregations should be an empty dictionary.')
+
     @patch.object(Elasticsearch, "search")
     def test_multi_corpus_search(self, mock_search):
         test_args = OrderedDict([("corpus", "nt+tlg0527"), ("field", "text"), ("q", 'λόγος'), ("fuzziness", "0"),
@@ -578,12 +616,10 @@ class TestES(Formulae_Testing):
     def test_simple_multi_corpus_search(self, mock_search):
         test_args = OrderedDict([("index", ['new_testament', "jewish"]), ("query", 'λόγος'), ("field", "text"),
                                  ("page", 1), ("per_page", self.app.config["POSTS_PER_PAGE"]), ('sort', 'urn')])
-        mock_search.return_value = {"hits": {"hits": [{'_id': 'urn:cts:cjhnt:nt.61-Mt.grc001',
-                                    '_source': {'urn': 'urn:cts:cjhnt:nt.61-Mt.grc001'},
-                                    'highlight': {
-                                        'text': ['Καὶ διεφημίσθη ὁ </small><strong>λόγος</strong><small> οὗτος παρὰ Ἰουδαίοις μέχρι']}}],
-                                             'total': 1},
-                                    'aggregations': {}}
+        fake_args = OrderedDict([("corpus", "all"), ("field", "text"), ("q", 'λόγος'), ("fuzziness", "0"),
+                                 ("in_order", "False"), ('slop', '0'), ('sort', 'urn')])
+        fake = FakeElasticsearch(self.build_file_name(fake_args), 'advanced_search')
+        mock_search.return_value = fake.load_response()
         body = {'query':
                     {'span_near':
                          {'clauses': [{'span_term': {'text': 'λόγος'}}], 'slop': 0, 'in_order': True}},
@@ -594,7 +630,7 @@ class TestES(Formulae_Testing):
                 'aggs': {'corpus': {'filters': {'filters': {'NT': {'match': {'_type': 'nt'}},
                                                             'Philo': {'match': {'_type': 'tlg0018'}},
                                                             'LXX': {'match': {'_type': 'tlg0527'}}}}}}}
-        query_index(**test_args)
+        ids, total, aggs = query_index(**test_args)
         mock_search.assert_called_with(index=['new_testament', "jewish"], doc_type="", body=body)
         test_args['query'] = 'λόγος εἰμί'
         body['query']['span_near']['clauses'] = [{'span_term': {'text': 'λόγος'}}, {'span_term': {'text': 'εἰμί'}}]
@@ -604,10 +640,41 @@ class TestES(Formulae_Testing):
         body['query']['span_near']['clauses'] = [{'span_multi': {'match': {'wildcard': {'text': 'λ?γος'}}}}]
         query_index(**test_args)
         mock_search.assert_called_with(index=['new_testament', "jewish"], doc_type="", body=body)
+        with self.client:
+            self.app.config["POSTS_PER_PAGE"] = 2
+            total_pages = int(ceil(total / self.app.config['POSTS_PER_PAGE']))
+            print(total_pages)
+            r = self.client.get('/search/simple?index=&q=λόγος', follow_redirects=True)
+            self.assertMessageFlashed(_('Sie müssen mindestens eine Sammlung für die Suche auswählen ("NT" und/oder "Jüdische Texte")') +
+                                      _(' Resultate aus dem Neuen Testament und Jüdischen Texten werden hier gezeigt.'))
+            p = re.compile('\.\.\..+<li class="page-item">\n\s+<a class="page-link"[^>]+page={total}'.format(total=total_pages),
+                           re.DOTALL)
+            self.assertRegex(r.get_data(as_text=True), p)
 
     def test_results_sort_option(self):
         self.assertEqual(build_sort_list('urn'), 'urn')
         self.assertEqual(build_sort_list('urn_desc'), [{'urn': {'order': 'desc'}}])
+
+    @patch.object(Elasticsearch, "search")
+    def test_suggest_word_search_completion(self, mock_search):
+        test_args = OrderedDict([("corpus", "nt+tlg0527"), ("field", "autocomplete"), ("q", 'λόγο'), ("fuzziness", "0"),
+                                 ("in_order", "False"), ('slop', '0'), ('sort', 'urn')])
+        fake = FakeElasticsearch(self.build_file_name(test_args), 'advanced_search')
+        resp = fake.load_response()
+        expected = ['λόγο',
+                    'λόγοι μου οὐ μὴ παρέλθωσιν',
+                    'λόγοις διὰ ταῦτα γὰρ ἔρχεται ἡ ὀργ',
+                    'λόγοις σου καὶ ⸀ νικήσεις ἐν τῷ κρίνεσθα',
+                    'λόγον βεβαιοῦντος διὰ τῶν ἐπακολουθούντω',
+                    'λόγον γὰρ συντελῶν καὶ ⸀ συντέμνων',
+                    'λόγον εἰς τὸν υἱὸν τοῦ ἀνθρώπου ἀφεθήσετα',
+                    'λόγον καθὼς ἠδύναντο ἀκούειν · χωρὶ',
+                    'λόγον μου τηρήσει καὶ ὁ πατήρ μου',
+                    'λόγον σπείρει οὗτοι δέ εἰσιν οἱ παρὰ']
+        mock_search.return_value = resp
+        test_args.pop('q')
+        results = suggest_word_search('λόγο', **test_args)
+        self.assertEqual(results[:10], expected, 'The true results should match the expected results.')
 
 
 class TestErrors(Formulae_Testing):

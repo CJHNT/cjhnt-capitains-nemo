@@ -81,7 +81,7 @@ def suggest_word_search(word, **kwargs):
                 i = r.find(w, ind)
                 results.append(re.sub(r'[{}]'.format(punctuation), '', r[i:min(r.find(' ', i + len(word) + 30), len(r))]))
                 ind = r.find(w, ind) + 1"""
-    return list(set(results))
+    return sorted(list(set(results)))
 
 
 def highlight_segment(orig_str, chars_before, chars_after, pre_tag, post_tag):
@@ -177,7 +177,7 @@ def advanced_query_index(corpus=['all'], field="text", q='', page=1, per_page=10
     else:
         ids = [{'id': hit['_id'], 'info': hit['_source'], 'sents': []} for hit in search['hits']['hits']]
     # It may be good to comment this block out when I am not saving requests, though it probably won't affect performance.
-    if current_app.config["SAVE_REQUESTS"] and 'autocomplete' not in field:
+    if current_app.config["SAVE_REQUESTS"]:# and 'autocomplete' not in field:
         req_name = "{corpus}&{field}&{q}&{fuzz}&{in_order}&{slop}&{sort}".format(corpus='+'.join(corpus), field=field,
                                                                                  q=q.replace(' ', '+'), fuzz=fuzziness,
                                                                                  in_order=in_order, slop=slop,
