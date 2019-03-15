@@ -1,9 +1,9 @@
 from config import Config
 from capitains_nautilus.cts.resolver import NautilusCTSResolver
-from formulae import create_app, db
+from formulae import create_app, db, mail
 from formulae.nemo import NemoFormulae
 from formulae.models import User
-from formulae.search.Search import advanced_query_index, query_index, suggest_composition_places, build_sort_list
+from formulae.search.Search import advanced_query_index, query_index, build_sort_list, suggest_word_search
 from formulae.dispatcher_builder import organizer
 import flask_testing
 from formulae.search.forms import AdvancedSearchForm, SearchForm
@@ -17,7 +17,9 @@ from .fake_es import FakeElasticsearch
 from collections import OrderedDict
 import os
 from MyCapytain.common.constants import Mimetypes
-from flask import Markup
+from flask import Markup, url_for, abort
+import re
+from math import ceil
 
 
 class TestConfig(Config):
@@ -36,12 +38,17 @@ class Formulae_Testing(flask_testing.TestCase):
         app = create_app(TestConfig)
         self.nemo = NemoFormulae(name="InstanceNemo", resolver=NautilusCTSResolver(app.config['CORPUS_FOLDERS'],
                                                                                    dispatcher=organizer),
-                                 app=app, base_url="", transform={"default": "components/epidoc.xsl"},
+                                 app=app, base_url="", transform={"default": "components/epidoc.xsl",
+                                                                  "notes": "components/extract_notes.xsl"},
                                  templates={"main": "templates/main",
                                             "errors": "templates/errors",
                                             "auth": "templates/auth",
                                             "search": "templates/search"},
                                  css=["assets/css/theme.css"], js=["assets/js/empty.js"], static_folder="./assets/")
+
+        @app.route('/500', methods=['GET'])
+        def r_500():
+            abort(500)
 
         return app
 
@@ -61,6 +68,20 @@ class Formulae_Testing(flask_testing.TestCase):
         db.drop_all()
 
 
+class TestFunctions(Formulae_Testing):
+    def test_get_first_passage(self):
+        """ Make sure the first passage of a work is correctly returned"""
+        first = self.nemo.get_first_passage('urn:cts:cjhnt:nt.86-Jud.grc001')
+        self.assertEqual(first, '1.1-1.20')
+
+    def test_NemoFormulae_f_replace_indexed_item(self):
+        """ Make sure that the replace_indexed_item filter works correctly"""
+        old_list = [1, 2, 3, 5, 5, 6, 7]
+        new_list = [1, 2, 3, 4, 5, 6, 7]
+        test_list = self.nemo.f_replace_indexed_item(old_list, 3, 4)
+        self.assertEqual(test_list, new_list)
+
+
 class TestIndividualRoutes(Formulae_Testing):
     def test_anonymous_user(self):
         """ Make sure that protected routes do not work with unauthorized users and that unprotected routes do
@@ -71,6 +92,8 @@ class TestIndividualRoutes(Formulae_Testing):
             self.assertTemplateUsed('main::index.html')
             c.get('/imprint', follow_redirects=True)
             self.assertTemplateUsed('main::impressum.html')
+            c.get('/search/doc', follow_redirects=True)
+            self.assertTemplateUsed('search::documentation.html')
             c.get('/auth/user/project.member', follow_redirects=True)
             self.assertMessageFlashed(_('Bitte loggen Sie sich ein, um Zugang zu erhalten.'))
             self.assertTemplateUsed('auth::login.html')
@@ -86,6 +109,8 @@ class TestIndividualRoutes(Formulae_Testing):
             # Check for backwards compatibility of URLs
             c.get('/texts/urn:cts:cjhnt:nt.86-Jud.grc001+urn:cts:cjhnt:commentary.tlg0042006.opp-grc1/passage/1+first', follow_redirects=True)
             self.assertTemplateUsed('main::multipassage.html')
+            c.get('/texts/urn:cts:cjhnt:nt.86-Jud+urn:cts:cjhnt:commentary.tlg0042006.opp-grc1/passage/1+first', follow_redirects=True)
+            self.assertTemplateUsed('main::multipassage.html')
             c.get('/add_collections/urn:cts:cjhnt:nt.86-Jud.grc001/1', follow_redirects=True)
             self.assertTemplateUsed('main::collection.html')
             c.get('/add_collection/urn:cts:cjhnt:nt/urn:cts:cjhnt:nt.86-Jud.grc001/1', follow_redirects=True)
@@ -93,6 +118,13 @@ class TestIndividualRoutes(Formulae_Testing):
             c.get('/texts/urn:cts:cjhnt:nt.86-Jud.grc001+urn:cts:cjhnt:commentary.tlg0042006.opp-grc1/passage/1+145', follow_redirects=True)
             self.assertMessageFlashed('Fragmenta In Evangelium Joannis (In Catenis).145 was not found. The whole text is shown here.')
             self.assertTemplateUsed('main::multipassage.html')
+            c.get('/work/urn:cts:cjhnt:nt.86-Jud.grc001', follow_redirects=True)
+            self.assertTemplateUsed('main::sub_collection.html')
+            c.get('/add_text/urn:cts:cjhnt:nt.86-Jud.grc001/urn:cts:cjhnt:commentary.tlg0042006.opp-grc1/1', follow_redirects=True)
+            self.assertTemplateUsed('main::sub_collection.html')
+            c.get('/nt_com/urn:cts:cjhnt:nt.86-Jud.grc001/passage/1.1', follow_redirects=True)
+            self.assertTemplateUsed('main::commentary_view.html')
+            self.assertFalse(self.nemo.check_project_team())
 
     def test_authorized_project_member(self):
         """ Make sure that all routes are open to project members"""
@@ -117,6 +149,8 @@ class TestIndividualRoutes(Formulae_Testing):
             # Check for backwards compatibility of URLs
             c.get('/texts/urn:cts:cjhnt:nt.86-Jud.grc001+urn:cts:cjhnt:commentary.tlg0042006.opp-grc1/passage/1+first', follow_redirects=True)
             self.assertTemplateUsed('main::multipassage.html')
+            c.get('/texts/urn:cts:cjhnt:nt.86-Jud+urn:cts:cjhnt:commentary.tlg0042006.opp-grc1/passage/1+first', follow_redirects=True)
+            self.assertTemplateUsed('main::multipassage.html')
             c.get('/add_collections/urn:cts:cjhnt:nt.86-Jud.grc001/1', follow_redirects=True)
             self.assertTemplateUsed('main::collection.html')
             c.get('/add_collection/urn:cts:cjhnt:nt/urn:cts:cjhnt:nt.86-Jud.grc001/1', follow_redirects=True)
@@ -127,6 +161,13 @@ class TestIndividualRoutes(Formulae_Testing):
             c.get('/texts/urn:cts:cjhnt:nt.86-Jud.grc001+urn:cts:cjhnt:commentary.tlg0042006.opp-grc1/passage/1+145', follow_redirects=True)
             self.assertMessageFlashed('Fragmenta In Evangelium Joannis (In Catenis).145 wurde nicht gefunden. Der ganze Text wird angezeigt.')
             self.assertTemplateUsed('main::multipassage.html')
+            c.get('/work/urn:cts:cjhnt:nt.86-Jud.grc001', follow_redirects=True)
+            self.assertTemplateUsed('main::sub_collection.html')
+            c.get('/add_text/urn:cts:cjhnt:nt.86-Jud.grc001/urn:cts:cjhnt:commentary.tlg0042006.opp-grc1/1', follow_redirects=True)
+            self.assertTemplateUsed('main::sub_collection.html')
+            c.get('/nt_com/urn:cts:cjhnt:nt.86-Jud.grc001/passage/1.1', follow_redirects=True)
+            self.assertTemplateUsed('main::commentary_view.html')
+            self.assertTrue(self.nemo.check_project_team())
 
     def test_authorized_normal_user(self):
         """ Make sure that all routes are open to normal users but that some texts are not available"""
@@ -148,6 +189,8 @@ class TestIndividualRoutes(Formulae_Testing):
             # self.assertTemplateUsed('main::references.html')
             c.get('/texts/urn:cts:cjhnt:nt.86-Jud.grc001+urn:cts:cjhnt:commentary.tlg0042006.opp-grc1/passage/1+1', follow_redirects=True)
             self.assertTemplateUsed('main::multipassage.html')
+            c.get('/texts/urn:cts:cjhnt:nt.86-Jud+urn:cts:cjhnt:commentary.tlg0042006.opp-grc1/passage/1+first', follow_redirects=True)
+            self.assertTemplateUsed('main::multipassage.html')
             # Check for backwards compatibility of URLs
             c.get('/texts/urn:cts:cjhnt:nt.86-Jud.grc001+urn:cts:cjhnt:commentary.tlg0042006.opp-grc1/passage/1+first', follow_redirects=True)
             self.assertTemplateUsed('main::multipassage.html')
@@ -161,48 +204,58 @@ class TestIndividualRoutes(Formulae_Testing):
             c.get('/texts/urn:cts:cjhnt:nt.86-Jud.grc001+urn:cts:cjhnt:commentary.tlg0042006.opp-grc1/passage/1+145', follow_redirects=True)
             self.assertMessageFlashed('Fragmenta In Evangelium Joannis (In Catenis).145 wurde nicht gefunden. Der ganze Text wird angezeigt.')
             self.assertTemplateUsed('main::multipassage.html')
+            c.get('/work/urn:cts:cjhnt:nt.86-Jud.grc001', follow_redirects=True)
+            self.assertTemplateUsed('main::sub_collection.html')
+            c.get('/add_text/urn:cts:cjhnt:nt.86-Jud.grc001/urn:cts:cjhnt:commentary.tlg0042006.opp-grc1/1', follow_redirects=True)
+            self.assertTemplateUsed('main::sub_collection.html')
+            c.get('/nt_com/urn:cts:cjhnt:nt.86-Jud.grc001/passage/1.1', follow_redirects=True)
+            self.assertTemplateUsed('main::commentary_view.html')
+            self.assertFalse(self.nemo.check_project_team())
 
     @patch("formulae.search.routes.advanced_query_index")
     def test_advanced_search_results(self, mock_search):
         """ Make sure that the correct search results are passed to the search results form"""
-        params = dict(corpus='formulae%2Bchartae', year=600, month=1, day=31, year_start=600, month_start=12,
-                      day_start=12, year_end=700, month_end=1, day_end=12)
+        params = dict(corpus='all', sort='urn', q='%CE%BB%CF%8C%CE%B3%CE%BF%CF%82+%CE%B5%E1%BC%B0%CE%BC%CE%AF',
+                      lemma_search='y', fuzziness=0, slop=0, in_order=False)
         mock_search.return_value = [[], 0, {}]
         with self.client as c:
             c.post('/auth/login', data=dict(username='project.member', password="some_password"),
                    follow_redirects=True)
-            response = c.get('/search/advanced_search?corpus=formulae&corpus=chartae&q=&year=600&month=1&day=31&'
-                             'year_start=600&month_start=12&day_start=12&year_end=700&month_end=1&day_end=12&'
-                             'date_plus_minus=0&submit=Search')
+            response = c.get('/search/advanced_search?q=λόγος+εἰμί&lemma_search=y&fuzziness=0&slop=0&submit=Search')
             for p, v in params.items():
-                self.assertRegex(str(response.location), r'{}={}'.format(p, v))
-            c.get('/search/results?source=advanced&corpus=formulae%2Bchartae&q=&fuzziness=0&slop=0&in_order=False&'
-                  'year=600&month=1&day=31&year_start=600&month_start=12&day_start=12&year_end=700&month_end=1&'
-                  'day_end=12&date_plus_minus=0&exclusive_date_range=False&submit=True')
-            mock_search.assert_called_with(corpus=['formulae', 'chartae'], date_plus_minus=0, day=31, day_end=12,
-                                           day_start=12, field='text', fuzziness='0', slop='0', month=1, month_end=1,
-                                           month_start=12, page=1, per_page=10, q='',
-                                           in_order='False', year=600, year_end=700, year_start=600,
-                                           exclusive_date_range='False', composition_place='', sort="urn")
+                self.assertIn('{}={}'.format(p, v), str(response.location))
             # Test to make sure that a capitalized search term is converted to lowercase in advanced search
-            params['q'] = 'regnum'
-            response = c.get('/search/advanced_search?corpus=formulae&corpus=chartae&q=Regnum&year=600&month=1&day=31&'
-                             'year_start=600&month_start=12&day_start=12&year_end=700&month_end=1&day_end=12&'
-                             'date_plus_minus=0&submit=Search')
+            response = c.get('/search/advanced_search?q=Λόγος+εἰμί&lemma_search=y&fuzziness=0&slop=0&submit=Search')
             for p, v in params.items():
-                self.assertRegex(str(response.location), r'{}={}'.format(p, v))
+                self.assertIn('{}={}'.format(p, v), str(response.location))
+            params['q'] = 'λόγος+εἰμί'
+            c.get('/search/results?source=advanced&corpus=all&sort=urn&q=λόγος+εἰμί&fuzziness=0&slop=0&in_order=False&submit=True')
+            mock_search.assert_called_with(corpus=['all'], field='text', fuzziness='0', in_order='False', page=1,
+                                           per_page=10, q='λόγος εἰμί', slop='0', sort='urn')
+            mock_search.mock_calls = []
+            c.get('/search/results?corpus=all&sort=urn&q=λόγος+εἰμί&fuzziness=0&slop=0&in_order=False&submit=True',
+                  follow_redirects=True)
+            self.assertEqual(mock_search.mock_calls, [], 'mock_search should not be called.')
+            self.assertTemplateUsed('main::index.html')
+            c.get('/search/advanced_search?q=&fuzziness=0&slop=0&submit=Search')
+            self.assertMessageFlashed(_('Bitte geben Sie Daten in mindestens einem Feld ein.'))
+            c.get('/search/advanced_search?q=λόγος+εἰμί&lemma_search=y&fuzziness=0&slop=200&submit=Search')
+            self.assertMessageFlashed('slop: ' + _('Der Suchradius muss zwischen 0 und 100 liegen'))
+
 
     @patch("formulae.search.routes.query_index")
     def test_simple_search_results(self, mock_search):
         """ Make sure that the correct search results are passed to the search results form"""
         params = dict(corpus='new_testament%2Bjewish', q='regnum', sort='urn')
-        mock_search.return_value = [[], 0]
+        mock_search.return_value = [[], 0, {}]
         with self.client as c:
             c.post('/auth/login', data=dict(username='project.member', password="some_password"),
                    follow_redirects=True)
             response = c.get('/search/simple?corpus=new_testament&corpus=jewish&q=Regnum')
             for p, v in params.items():
                 self.assertRegex(str(response.location), r'{}={}'.format(p, v))
+            c.get('/search/results?source=simple&corpus=all&sort=urn&q=λόγος+εἰμί&submit=True')
+            mock_search.assert_called_with(['all'], 'text', 'λόγος εἰμί', 1, 10, sort='urn')
 
     def test_search_result_highlighting(self):
         """ Make sure that highlighting of search results works correctly"""
@@ -330,24 +383,8 @@ class TestForms(Formulae_Testing):
         form = AdvancedSearchForm(corpus=['some corpus'])
         form.corpus.data = ['some corpus']
         self.assertFalse(form.validate(), "Invalid corpus choice should not validate")
-        form = AdvancedSearchForm(year=200)
-        self.assertFalse(form.validate(), "Invalid year choice should not validate")
-        form = AdvancedSearchForm(month="weird")
-        self.assertFalse(form.validate(), "Invalid month choice should not validate")
-        form = AdvancedSearchForm(day=32)
-        self.assertFalse(form.validate(), "Invalid day choice should not validate")
-        form = AdvancedSearchForm(year_start=200)
-        self.assertFalse(form.validate(), "Invalid year_start choice should not validate")
-        form = AdvancedSearchForm(month_start="weird")
-        self.assertFalse(form.validate(), "Invalid month_start choice should not validate")
-        form = AdvancedSearchForm(day_start=32)
-        self.assertFalse(form.validate(), "Invalid day_start choice should not validate")
-        form = AdvancedSearchForm(year_end=200)
-        self.assertFalse(form.validate(), "Invalid year_end choice should not validate")
-        form = AdvancedSearchForm(month_end="weird")
-        self.assertFalse(form.validate(), "Invalid month_end choice should not validate")
-        form = AdvancedSearchForm(day_end=32)
-        self.assertFalse(form.validate(), "Invalid day_end choice should not validate")
+        form = AdvancedSearchForm(slop=200)
+        self.assertFalse(form.validate(), "Invalid slop choice should not validate")
 
     def test_validate_valid_registration_form(self):
         """ Ensure that correct data for new user registration validates"""
@@ -418,35 +455,123 @@ class TestAuth(Formulae_Testing):
             self.assertTrue(User.query.filter_by(username='new.user').first(), "It should have added new.user.")
             self.assertTemplateUsed('auth::login.html')
 
+    def test_send_email_existing_user(self):
+        """ Ensure that emails are constructed correctly"""
+        with self.client as c:
+            with mail.record_messages() as outbox:
+                c.post('/auth/reset_password_request', data=dict(email="project.member@uni-hamburg.de"),
+                       follow_redirects=True)
+                self.assertEqual(len(outbox), 1, 'One email should be sent')
+                self.assertEqual(outbox[0].recipients, ["project.member@uni-hamburg.de"],
+                                 'The recipient email address should be correct.')
+                self.assertEqual(outbox[0].subject, _('[Formulae - Litterae - Chartae] Passwort zurücksetzen'),
+                                 'The Email should have the correct subject.')
+                self.assertIn(_('Sehr geehrte(r)') + ' project.member', outbox[0].html,
+                              'The email text should be addressed to the correct user.')
+                self.assertEqual(outbox[0].sender, 'no-reply@example.com',
+                                 'The email should come from the correct sender.')
+                self.assertMessageFlashed(_('Die Anweisung zum Zurücksetzen Ihres Passworts wurde Ihnen per E-mail zugeschickt'))
+
+    def test_send_email_not_existing_user(self):
+        """ Ensure that emails are constructed correctly"""
+        with self.client as c:
+            with mail.record_messages() as outbox:
+                c.post('/auth/reset_password_request', data=dict(email="pirate.user@uni-hamburg.de"),
+                       follow_redirects=True)
+                self.assertEqual(len(outbox), 0, 'No email should be sent when the email is not in the database.')
+                self.assertMessageFlashed(_('Die Anweisung zum Zurücksetzen Ihres Passworts wurde Ihnen per E-mail zugeschickt'))
+
+    def test_reset_password_from_email_token(self):
+        """ Make sure that a correct email token allows the user to reset their password while an incorrect one doesn't"""
+        with self.client as c:
+            user = User.query.filter_by(username='project.member').first()
+            token = user.get_reset_password_token()
+            # Make sure that the template renders correctly with correct token
+            c.post(url_for('auth.r_reset_password', token=token, _external=True))
+            self.assertTemplateUsed('auth::reset_password.html')
+            # Make sure the correct token allows the user to change their password
+            c.post(url_for('auth.r_reset_password', token=token, _external=True),
+                   data={'password': 'some_new_password', 'password2': 'some_new_password'})
+            self.assertTrue(user.check_password('some_new_password'), 'User\'s password should be changed.')
+            c.post(url_for('auth.r_reset_password', token='some_weird_token', _external=True),
+                   data={'password': 'some_password', 'password2': 'some_password'}, follow_redirects=True)
+            self.assertTemplateUsed('main::index.html')
+            self.assertTrue(user.check_password('some_new_password'), 'User\'s password should not have changed.')
+            # Make sure that a logged in user who comes to this page with a token is redirected to their user page with a flashed message
+            c.post('/auth/login', data=dict(username='project.member', password="some_new_password"),
+                   follow_redirects=True)
+            c.post(url_for('auth.r_reset_password', token=token, _external=True), follow_redirects=True)
+            self.assertTemplateUsed('auth::login.html')
+            self.assertMessageFlashed(_('Sie sind schon eingeloggt. Sie können Ihr Password hier ändern.'))
+            self.assertEqual(repr(user), '<User project.member>')
+
+    def test_user_logout(self):
+        """ Make sure that the user is correctly logged out and redirected"""
+        with self.client as c:
+            c.post('/auth/login', data=dict(username='project.member', password="some_password"),
+                   follow_redirects=True)
+            self.assertTrue(current_user.is_authenticated, 'User should be logged in.')
+            c.get('/auth/logout', follow_redirects=True)
+            self.assertFalse(current_user.is_authenticated, 'User should now be logged out.')
+            self.assertTemplateUsed('auth::login.html')
+
+    def test_user_change_prefs(self):
+        """ Make sure that the user can change their language and password"""
+        with self.client as c:
+            c.post('/auth/login', data=dict(username='project.member', password="some_password"),
+                   follow_redirects=True)
+            self.assertEqual(current_user.default_locale, 'de', '"de" should be the default language.')
+            c.post('/auth/user/project.member', data={'new_locale': "en"})
+            self.assertEqual(current_user.default_locale, 'en', 'User language should have been changed to "en"')
+            c.post('/auth/user/project.member', data={'old_password': 'some_password', 'password': 'some_new_password',
+                                                      'password2': 'some_new_password'},
+                   follow_redirects=True)
+            self.assertTrue(User.query.filter_by(username='project.member').first().check_password('some_new_password'),
+                            'User should have a new password: "some_new_password".')
+            self.assertTemplateUsed('main::index.html')
+
+    def test_user_change_prefs_incorrect(self):
+        """ Make sure that a user who gives the false old password is not able to change their password"""
+        with self.client as c:
+            c.post('/auth/login', data=dict(username='project.member', password="some_password"),
+                   follow_redirects=True)
+            self.assertTrue(current_user.is_authenticated)
+            c.post(url_for('auth.r_user', username='project.member'), data={'old_password': 'some_wrong_password',
+                                                                            'password': 'some_new_password',
+                                                                            'password2': 'some_new_password'},
+                   follow_redirects=True)
+            self.assertTrue(User.query.filter_by(username='project.member').first().check_password('some_password'),
+                            'User\'s password should not have changed.')
+            self.assertMessageFlashed(_("Das ist nicht Ihr aktuelles Passwort."))
+
 
 class TestES(Formulae_Testing):
     def build_file_name(self, fake_args):
         return '&'.join(["{}".format(str(v)) for k, v in fake_args.items()])
 
-    @patch.object(Elasticsearch, "search")
-    def test_date_range_search(self, mock_search):
+    def test_return_when_no_es(self):
+        """ Make sure that when ElasticSearch is not active, calls to the search functions return empty results instead of errors"""
+        self.app.elasticsearch = None
+        simple_test_args = OrderedDict([("index", ['formulae', "chartae"]), ("query", 'regnum'), ("field", "text"),
+                                        ("page", 1), ("per_page", self.app.config["POSTS_PER_PAGE"]), ('sort', 'urn')])
+        hits, total, aggs = query_index(**simple_test_args)
+        self.assertEqual(hits, [], 'Hits should be an empty list.')
+        self.assertEqual(total, 0, 'Total should be 0')
+        self.assertEqual(aggs, {}, 'Aggregations should be an empty dictionary.')
         test_args = OrderedDict([("corpus", "all"), ("field", "text"), ("q", ''), ("fuzziness", "0"), ('in_order', 'False'),
                                  ("year", 0), ('slop', '0'), ("month", 0), ("day", 0), ("year_start", 814),
                                  ("month_start", 10), ("day_start", 29), ("year_end", 814), ("month_end", 11),
                                  ("day_end", 20), ('date_plus_minus', 0), ('exclusive_date_range', 'False'),
                                  ("composition_place", ''), ('sort', 'urn')])
-        fake = FakeElasticsearch(self.build_file_name(test_args), 'advanced_search')
-        body = fake.load_request()
-        resp = fake.load_response()
-        ids = fake.load_ids()
-        mock_search.return_value = resp
-        test_args['corpus'] = test_args['corpus'].split('+')
-        actual, _, _  = advanced_query_index(**test_args)
-        mock_search.assert_called_with(index=test_args['corpus'], doc_type="", body=body)
-        self.assertEqual(ids, [{"id": x['id']} for x in actual])
+        hits, total, aggs = advanced_query_index(**test_args)
+        self.assertEqual(hits, [], 'Hits should be an empty list.')
+        self.assertEqual(total, 0, 'Total should be 0')
+        self.assertEqual(aggs, {}, 'Aggregations should be an empty dictionary.')
 
     @patch.object(Elasticsearch, "search")
-    def test_normal_date_search(self, mock_search):
-        test_args = OrderedDict([("corpus", "all"), ("field", "text"), ("q", ''), ("fuzziness", "0"), ('in_order', 'False'),
-                                 ("year", 800), ('slop', '0'), ("month", 10), ("day", 9), ("year_start", 0),
-                                 ("month_start", 0), ("day_start", 0), ("year_end", 0), ("month_end", 0),
-                                 ("day_end", 0), ('date_plus_minus', 0), ('exclusive_date_range', 'False'),
-                                 ("composition_place", ''), ('sort', 'urn')])
+    def test_multi_corpus_search(self, mock_search):
+        test_args = OrderedDict([("corpus", "nt+tlg0527"), ("field", "text"), ("q", 'λόγος'), ("fuzziness", "0"),
+                                 ("in_order", "False"), ('slop', '0'), ('sort', 'urn')])
         fake = FakeElasticsearch(self.build_file_name(test_args), 'advanced_search')
         body = fake.load_request()
         resp = fake.load_response()
@@ -458,46 +583,9 @@ class TestES(Formulae_Testing):
         self.assertEqual(ids, [{"id": x['id']} for x in actual])
 
     @patch.object(Elasticsearch, "search")
-    def test_date_plus_minus_search(self, mock_search):
-        test_args = OrderedDict([("corpus", "all"), ("field", "text"), ("q", ''), ("fuzziness", "0"), ('in_order', 'False'),
-                                 ("year", 800), ('slop', '0'), ("month", 10), ("day", 9), ("year_start", 0),
-                                 ("month_start", 0), ("day_start", 0), ("year_end", 0), ("month_end", 0),
-                                 ("day_end", 0), ('date_plus_minus', 10), ('exclusive_date_range', 'False'),
-                                 ("composition_place", ''), ('sort', 'urn')])
-        fake = FakeElasticsearch(self.build_file_name(test_args), 'advanced_search')
-        body = fake.load_request()
-        resp = fake.load_response()
-        ids = fake.load_ids()
-        mock_search.return_value = resp
-        test_args['corpus'] = test_args['corpus'].split('+')
-        actual, _, _  = advanced_query_index(**test_args)
-        mock_search.assert_called_with(index=test_args['corpus'], doc_type="", body=body)
-        self.assertEqual(ids, [{"id": x['id']} for x in actual])
-
-    @patch.object(Elasticsearch, "search")
-    def test_exclusive_date_range_search(self, mock_search):
-        test_args = OrderedDict([("corpus", "all"), ("field", "text"), ("q", ''), ("fuzziness", "0"),
-                                 ("in_order", "False"), ("year", 0), ('slop', '0'), ("month", 0), ("day", 0),
-                                 ("year_start", 700), ("month_start", 10), ("day_start", 0), ("year_end", 800),
-                                 ("month_end", 10), ("day_end", 0), ('date_plus_minus', 0),
-                                 ('exclusive_date_range', 'True'), ("composition_place", ''), ('sort', 'urn')])
-        fake = FakeElasticsearch(self.build_file_name(test_args), 'advanced_search')
-        body = fake.load_request()
-        resp = fake.load_response()
-        ids = fake.load_ids()
-        mock_search.return_value = resp
-        test_args['corpus'] = test_args['corpus'].split('+')
-        actual, _, _  = advanced_query_index(**test_args)
-        mock_search.assert_called_with(index=test_args['corpus'], doc_type="", body=body)
-        self.assertEqual(ids, [{"id": x['id']} for x in actual])
-
-    @patch.object(Elasticsearch, "search")
-    def test_multi_corpus_search(self, mock_search):
-        test_args = OrderedDict([("corpus", "andecavensis+mondsee"), ("field", "text"), ("q", ''), ("fuzziness", "0"),
-                                 ("in_order", "False"), ("year", 0), ('slop', 0), ("month", 0), ("day", 0),
-                                 ("year_start", 814), ("month_start", 10), ("day_start", 29), ("year_end", 814),
-                                 ("month_end", 11), ("day_end", 20), ('date_plus_minus', 0),
-                                 ('exclusive_date_range', 'False'), ("composition_place", ''), ('sort', 'urn')])
+    def test_wildcard_text_search(self, mock_search):
+        test_args = OrderedDict([("corpus", "all"), ("field", "text"), ("q", 'λ?γος'), ("fuzziness", "0"),
+                                 ("in_order", "False"), ('slop', '0'), ('sort', 'urn')])
         fake = FakeElasticsearch(self.build_file_name(test_args), 'advanced_search')
         body = fake.load_request()
         resp = fake.load_response()
@@ -510,11 +598,8 @@ class TestES(Formulae_Testing):
 
     @patch.object(Elasticsearch, "search")
     def test_lemma_advanced_search(self, mock_search):
-        test_args = OrderedDict([("corpus", "all"), ("field", "lemmas"), ("q", 'regnum'), ("fuzziness", "0"),
-                                 ("in_order", "False"), ("year", 0), ("slop", "0"), ("month", 0), ("day", 0),
-                                 ("year_start", 0), ("month_start", 0), ("day_start", 0), ("year_end", 0),
-                                 ("month_end", 0), ("day_end", 0), ('date_plus_minus', 0),
-                                 ('exclusive_date_range', 'False'), ("composition_place", ''), ('sort', 'urn')])
+        test_args = OrderedDict([("corpus", "all"), ("field", "lemmas"), ("q", 'λόγος'), ("fuzziness", "0"),
+                                 ("in_order", "False"), ('slop', '0'), ('sort', 'urn')])
         fake = FakeElasticsearch(self.build_file_name(test_args), 'advanced_search')
         body = fake.load_request()
         resp = fake.load_response()
@@ -527,11 +612,8 @@ class TestES(Formulae_Testing):
 
     @patch.object(Elasticsearch, "search")
     def test_multiword_lemma_advanced_search(self, mock_search):
-        test_args = OrderedDict([("corpus", "all"), ("field", "lemmas"), ("q", 'vir+venerabilis'), ("fuzziness", "0"),
-                                 ("in_order", "False"), ("year", 0), ("slop", "0"), ("month", 0), ("day", 0),
-                                 ("year_start", 0), ("month_start", 0), ("day_start", 0), ("year_end", 0),
-                                 ("month_end", 0), ("day_end", 0), ('date_plus_minus', 0),
-                                 ('exclusive_date_range', 'False'), ("composition_place", ''), ('sort', 'urn')])
+        test_args = OrderedDict([("corpus", "all"), ("field", "lemmas"), ("q", 'λόγος+εἰμί'), ("fuzziness", "0"),
+                                 ("in_order", "False"), ('slop', '0'), ('sort', 'urn')])
         fake = FakeElasticsearch(self.build_file_name(test_args), 'advanced_search')
         body = fake.load_request()
         resp = fake.load_response()
@@ -544,101 +626,102 @@ class TestES(Formulae_Testing):
         self.assertEqual(ids, [{"id": x['id']} for x in actual])
 
     @patch.object(Elasticsearch, "search")
-    def test_composition_place_advanced_search(self, mock_search):
-        test_args = OrderedDict([("corpus", "all"), ("field", "text"), ("q", ''), ("fuzziness", "0"),
-                                 ("in_order", "False"), ("year", 0), ("slop", "0"), ("month", 0), ("day", 0),
-                                 ("year_start", 0), ("month_start", 0), ("day_start", 0), ("year_end", 0),
-                                 ("month_end", 0), ("day_end", 0), ('date_plus_minus', 0),
-                                 ('exclusive_date_range', 'False'), ("composition_place", '(Basel-)Augst'),
-                                 ('sort', 'urn')])
-        fake = FakeElasticsearch(self.build_file_name(test_args), 'advanced_search')
-        body = fake.load_request()
-        resp = fake.load_response()
-        ids = fake.load_ids()
-        mock_search.return_value = resp
-        test_args['corpus'] = test_args['corpus'].split('+')
-        test_args['q'] = test_args['q'].replace('+', ' ')
-        actual, _, _ = advanced_query_index(**test_args)
-        mock_search.assert_called_with(index=test_args['corpus'], doc_type="", body=body)
-        self.assertEqual(ids, [{"id": x['id']} for x in actual])
+    def test_lemma_advanced_search_with_wildcard(self, mock_search):
+        test_args = OrderedDict([("corpus", "all"), ("field", "lemmas"), ("q", 'λ?γος'), ("fuzziness", "0"),
+                                 ("in_order", "False"), ('slop', '0'), ('sort', 'urn')])
+        mock_search.return_value = [], 0, {}
+        with self.client:
+            ids, hits, agg = advanced_query_index(**test_args)
+            self.assertEqual(ids, [])
+            self.assertEqual(hits, 0)
+            self.assertMessageFlashed(_("'Wildcard'-Zeichen (\"*\" and \"?\") sind bei der Lemmasuche nicht möglich."))
 
     @patch.object(Elasticsearch, "search")
     def test_simple_multi_corpus_search(self, mock_search):
-        test_args = OrderedDict([("index", ['formulae', "chartae"]), ("query", 'regnum'), ("field", "text"),
+        test_args = OrderedDict([("index", ['new_testament', "jewish"]), ("query", 'λόγος'), ("field", "text"),
                                  ("page", 1), ("per_page", self.app.config["POSTS_PER_PAGE"]), ('sort', 'urn')])
-        mock_search.return_value = {"hits": {"hits": [{'_id': 'urn:cts:formulae:stgallen.wartmann0259.lat001',
-                                    '_source': {'urn': 'urn:cts:formulae:stgallen.wartmann0259.lat001'},
-                                    'highlight': {
-                                        'text': ['Notavi die et <strong>regnum</strong>. Signum Mauri et uxores suas Audoaras, qui hanc cartam fieri rogaverunt.']}}],
-                                             'total': 0},
-                                    'aggregations': {}}
+        fake_args = OrderedDict([("corpus", "all"), ("field", "text"), ("q", 'λόγος'), ("fuzziness", "0"),
+                                 ("in_order", "False"), ('slop', '0'), ('sort', 'urn')])
+        fake = FakeElasticsearch(self.build_file_name(fake_args), 'advanced_search')
+        mock_search.return_value = fake.load_response()
         body = {'query':
                     {'span_near':
-                         {'clauses': [{'span_term': {'text': 'regnum'}}], 'slop': 0, 'in_order': True}},
+                         {'clauses': [{'span_term': {'text': 'λόγος'}}], 'slop': 0, 'in_order': True}},
                 'sort': 'urn', 'from': 0, 'size': 10,
                 'highlight': {'fields': {'text': {'fragment_size': 300}},
                               'pre_tags': ['</small><strong>'],
                               'post_tags': ['</strong><small>'], 'encoder': 'html'},
-                'aggs': {'range':
-                             {'date_range':
-                                  {'field': 'min_date',
-                                   'format': 'yyyy',
-                                   'ranges': [{'key': '<499', 'from': '0002', 'to': '0499'},
-                                              {'key': '500-599', 'from': '0500', 'to': '0599'},
-                                              {'key': '600-699', 'from': '0600', 'to': '0699'},
-                                              {'key': '700-799', 'from': '0700', 'to': '0799'},
-                                              {'key': '800-899', 'from': '0800', 'to': '0899'},
-                                              {'key': '900-999', 'from': '0900', 'to': '0999'},
-                                              {'key': '>1000', 'from': '1000'}]}},
-                         'corpus':
-                             {'filters':
-                                  {'filters':
-                                       {'Rätien': {'match': {'_type': 'raetien'}},
-                                        'Angers': {'match': {'_type': 'andecavensis'}},
-                                        'Bünden': {'match': {'_type': 'buenden'}},
-                                        'Luzern': {'match': {'_type': 'luzern'}},
-                                        'Mondsee': {'match': {'_type': 'mondsee'}},
-                                        'Passau': {'match': {'_type': 'passau'}},
-                                        'Regensburg': {'match': {'_type': 'regensburg'}},
-                                        'Rheinisch': {'match': {'_type': 'rheinisch'}},
-                                        'Salzburg': {'match': {'_type': 'salzburg'}},
-                                        'Schäftlarn': {'match': {'_type': 'schaeftlarn'}},
-                                        'St. Gallen': {'match': {'_type': 'stgallen'}},
-                                        'Werden': {'match': {'_type': 'werden'}},
-                                        'Zürich': {'match': {'_type': 'zuerich'}}}}},
-                         'no_date': {'missing': {'field': 'min_date'}}}}
+                'aggs': {'corpus': {'filters': {'filters': {'NT': {'match': {'_type': 'nt'}},
+                                                            'Philo': {'match': {'_type': 'tlg0018'}},
+                                                            'LXX': {'match': {'_type': 'tlg0527'}}}}}}}
+        ids, total, aggs = query_index(**test_args)
+        mock_search.assert_called_with(index=['new_testament', "jewish"], doc_type="", body=body)
+        test_args['query'] = 'λόγος εἰμί'
+        body['query']['span_near']['clauses'] = [{'span_term': {'text': 'λόγος'}}, {'span_term': {'text': 'εἰμί'}}]
         query_index(**test_args)
-        mock_search.assert_called_with(index=['formulae', 'chartae'], doc_type="", body=body)
-        test_args['query'] = 'regnum domni'
-        body['query']['span_near']['clauses'] = [{'span_term': {'text': 'regnum'}}, {'span_term': {'text': 'domni'}}]
+        mock_search.assert_called_with(index=['new_testament', "jewish"], doc_type="", body=body)
+        test_args['query'] = 'λ?γος'
+        body['query']['span_near']['clauses'] = [{'span_multi': {'match': {'wildcard': {'text': 'λ?γος'}}}}]
         query_index(**test_args)
-        mock_search.assert_called_with(index=['formulae', 'chartae'], doc_type="", body=body)
-        test_args['query'] = 're?num'
-        body['query']['span_near']['clauses'] = [{'span_multi': {'match': {'wildcard': {'text': 're?num'}}}}]
-        query_index(**test_args)
-        mock_search.assert_called_with(index=['formulae', 'chartae'], doc_type="", body=body)
-
-    @patch.object(Elasticsearch, "search")
-    def test_suggest_composition_places(self, mock_search):
-        test_args = OrderedDict([("corpus", "all"), ("field", "text"), ("q", ''), ("fuzziness", "0"),
-                                 ("in_order", "False"), ("year", 0), ('slop', '0'), ("month", 0), ("day", 0),
-                                 ("year_start", 700), ("month_start", 10), ("day_start", 0), ("year_end", 800),
-                                 ("month_end", 10), ("day_end", 0), ('date_plus_minus', 0),
-                                 ('exclusive_date_range', 'True'), ("composition_place", ''), ('sort', 'urn')])
-        fake = FakeElasticsearch(self.build_file_name(test_args), 'advanced_search')
-        resp = fake.load_response()
-        expected = [' ', 'St. Gallen', "Stetten", 'Wila']
-        mock_search.return_value = resp
-        results = suggest_composition_places()
-        self.assertEqual(results, expected, 'The true results should match the expected results.')
+        mock_search.assert_called_with(index=['new_testament', "jewish"], doc_type="", body=body)
+        test_args['index'] = ''
+        mt_ids, mt_total, mt_agg = query_index(**test_args)
+        self.assertEqual(mt_ids, [])
+        self.assertEqual(mt_total, 0)
+        self.assertEqual(mt_agg, {})
+        with self.client:
+            self.app.config["POSTS_PER_PAGE"] = 2
+            total_pages = int(ceil(total / self.app.config['POSTS_PER_PAGE']))
+            r = self.client.get('/search/simple?index=&q=λόγος', follow_redirects=True)
+            self.assertMessageFlashed(_('Sie müssen mindestens eine Sammlung für die Suche auswählen ("NT" und/oder "Jüdische Texte")') +
+                                      _(' Resultate aus dem Neuen Testament und Jüdischen Texten werden hier gezeigt.'))
+            p = re.compile('\.\.\..+<li class="page-item">\n\s+<a class="page-link"[^>]+page={total}'.format(total=total_pages),
+                           re.DOTALL)
+            self.assertRegex(r.get_data(as_text=True), p)
 
     def test_results_sort_option(self):
         self.assertEqual(build_sort_list('urn'), 'urn')
-        self.assertEqual(build_sort_list('min_date_asc'), [{'all_dates': {'order': 'asc', 'mode': 'min'}}, 'urn'])
-        self.assertEqual(build_sort_list('max_date_asc'), [{'all_dates': {'order': 'asc', 'mode': 'max'}}, 'urn'])
-        self.assertEqual(build_sort_list('min_date_desc'), [{'all_dates': {'order': 'desc', 'mode': 'min'}}, 'urn'])
-        self.assertEqual(build_sort_list('max_date_desc'), [{'all_dates': {'order': 'desc', 'mode': 'max'}}, 'urn'])
         self.assertEqual(build_sort_list('urn_desc'), [{'urn': {'order': 'desc'}}])
+
+    @patch.object(Elasticsearch, "search")
+    def test_suggest_word_search_completion(self, mock_search):
+        test_args = OrderedDict([("corpus", "all"), ("field", "autocomplete"), ("q", 'ἀγαπητῷ'), ("fuzziness", "0"),
+                                 ("in_order", "False"), ('slop', '0'), ('sort', 'urn')])
+        fake = FakeElasticsearch(self.build_file_name(test_args), 'advanced_search')
+        resp = fake.load_response()
+        expected = ['', 'ἀγαπητῷ καὶ συνεργῷ ἡμῶν καὶ Ἀπφίᾳ']
+        mock_search.return_value = resp
+        test_args.pop('q')
+        results = suggest_word_search('λόγο', **test_args)
+        self.assertEqual(results[:10], expected, 'The true results should match the expected results.')
+
+    @patch.object(Elasticsearch, "search")
+    def test_single_lemma_highlighting(self, mock_search):
+        test_args = OrderedDict([("corpus", "all"), ("field", "lemmas"), ("q", 'προσοφείλω'), ("fuzziness", "0"),
+                                 ("in_order", "False"), ('slop', '0'), ('sort', 'urn')])
+        fake = FakeElasticsearch(self.build_file_name(test_args), 'advanced_search')
+        resp = fake.load_response()
+        sents = [{'sents': ['· ἵνα μὴ λέγω σοι ὅτι καὶ σεαυτόν μοι προσοφείλεις. ναί, ἀδελφέ, '
+                            'ἐγώ σου ὀναίμην ἐν κυρίῳ · ἀνάπαυσόν μου']}]
+        mock_search.return_value = resp
+        test_args['corpus'] = test_args['corpus'].split('+')
+        test_args['q'] = test_args['q'].replace('+', ' ')
+        actual, _, _ = advanced_query_index(**test_args)
+        self.assertEqual(sents, [{"sents": x['sents']} for x in actual])
+
+    @patch.object(Elasticsearch, "search")
+    def test_multiple_lemma_highlighting(self, mock_search):
+        test_args = OrderedDict([("corpus", "all"), ("field", "lemmas"), ("q", 'ἐγώ+προσοφείλω'), ("fuzziness", "0"),
+                                 ("in_order", "False"), ('slop', '0'), ('sort', 'urn')])
+        fake = FakeElasticsearch(self.build_file_name(test_args), 'advanced_search')
+        resp = fake.load_response()
+        sents = [{'sents': ['Παῦλος ἔγραψα τῇ ἐμῇ χειρί, ἐγὼ ἀποτίσω · ἵνα μὴ λέγω σοι ὅτι καὶ σεαυτόν μοι προσοφείλεις. ναί, ἀδελφέ, '
+                            'ἐγώ σου ὀναίμην ἐν κυρίῳ · ἀνάπαυσόν μου τὰ σπλάγχνα ἐν']}]
+        mock_search.return_value = resp
+        test_args['corpus'] = test_args['corpus'].split('+')
+        test_args['q'] = test_args['q'].replace('+', ' ')
+        actual, _, _ = advanced_query_index(**test_args)
+        self.assertEqual(sents, [{"sents": x['sents']} for x in actual])
 
 
 class TestErrors(Formulae_Testing):
@@ -652,4 +735,12 @@ class TestErrors(Formulae_Testing):
             response = c.get('/collections/urn:cts:cjhnt:newtestament', follow_redirects=True)
             self.assert404(response, 'An Unknown Collection Error should also return 404.')
             self.assertTemplateUsed("errors::unknown_collection.html")
+
+    def test_500(self):
+        with self.client as c:
+            expected = "<h4>{}</h4><p>{}</p>".format(_('Ein unerwarteter Fehler ist aufgetreten'),
+                                                     _('Der Administrator wurde benachrichtigt. Bitte entschuldigen Sie die Unannehmlichkeiten!'))
+            response = c.get('/500', follow_redirects=True)
+            self.assert500(response, 'Should raise 500 error.')
+            self.assertIn(expected, response.get_data(as_text=True))
 

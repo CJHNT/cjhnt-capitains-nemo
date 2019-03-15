@@ -1,0 +1,111 @@
+{
+  "took": 27,
+  "timed_out": false,
+  "_shards": {
+    "total": 3,
+    "successful": 3,
+    "skipped": 0,
+    "failed": 0
+  },
+  "hits": {
+    "total": 4,
+    "max_score": null,
+    "hits": [
+      {
+        "_index": "nt_v1",
+        "_type": "nt",
+        "_id": "urn:cts:cjhnt:nt.64-Jn.grc001",
+        "_score": null,
+        "_source": {
+          "text": "text",
+          "lemmas": "text",
+          "title": "Jn",
+          "urn": "urn:cts:cjhnt:nt.64-Jn.grc001",
+          "date_string": " ",
+          "comp_ort": " ",
+          "autocomplete": "text",
+          "autocomplete_lemmas": "text",
+          "orig_comp_ort": " "
+        },
+        "sort": [
+          "urn:cts:cjhnt:nt.64-Jn.grc001"
+        ]
+      },
+      {
+        "_index": "nt_v1",
+        "_type": "nt",
+        "_id": "urn:cts:cjhnt:nt.72-Col.grc001",
+        "_score": null,
+        "_source": {
+          "text": "text",
+          "lemmas": "text",
+          "title": "Col",
+          "urn": "urn:cts:cjhnt:nt.72-Col.grc001",
+          "date_string": " ",
+          "comp_ort": " ",
+          "autocomplete": "text",
+          "autocomplete_lemmas": "text",
+          "orig_comp_ort": " "
+        },
+        "sort": [
+          "urn:cts:cjhnt:nt.72-Col.grc001"
+        ]
+      },
+      {
+        "_index": "nt_v1",
+        "_type": "nt",
+        "_id": "urn:cts:cjhnt:nt.73-1Th.grc001",
+        "_score": null,
+        "_source": {
+          "text": "text",
+          "lemmas": "text",
+          "title": "1Th",
+          "urn": "urn:cts:cjhnt:nt.73-1Th.grc001",
+          "date_string": " ",
+          "comp_ort": " ",
+          "autocomplete": "text",
+          "autocomplete_lemmas": "text",
+          "orig_comp_ort": " "
+        },
+        "sort": [
+          "urn:cts:cjhnt:nt.73-1Th.grc001"
+        ]
+      },
+      {
+        "_index": "nt_v1",
+        "_type": "nt",
+        "_id": "urn:cts:cjhnt:nt.80-Jas.grc001",
+        "_score": null,
+        "_source": {
+          "text": "text",
+          "lemmas": "text",
+          "title": "Jas",
+          "urn": "urn:cts:cjhnt:nt.80-Jas.grc001",
+          "date_string": " ",
+          "comp_ort": " ",
+          "autocomplete": "text",
+          "autocomplete_lemmas": "text",
+          "orig_comp_ort": " "
+        },
+        "sort": [
+          "urn:cts:cjhnt:nt.80-Jas.grc001"
+        ]
+      }
+    ]
+  },
+  "aggregations": {
+    "corpus": {
+      "buckets": {
+        "LXX": {
+          "doc_count": 0
+        },
+        "NT": {
+          "doc_count": 4
+        },
+        "Philo": {
+          "doc_count": 0
+        }
+      }
+    }
+  }
+}

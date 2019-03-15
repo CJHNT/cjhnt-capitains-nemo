@@ -1,6 +1,4 @@
 var allCorporaChecks = document.querySelectorAll('input.under-all');
-var formulaeChecks = document.querySelectorAll('input.under-formulae');
-var chartaeChecks = document.querySelectorAll('input.under-chartae');
 var wordSearchData = document.getElementById('word-search-datalist');
 var wordSearchInput = document.getElementById('word-search-box');
 var textSearchTimeout = null;
@@ -72,33 +70,16 @@ function buildUrl() {
         field:'autocomplete',
         fuzziness:'0',
         in_order:'False',
-        year:'0',
-        slop:'0',
-        month:'0',
-        day:'0',
-        year_start:'0',
-        month_start:'0',
-        day_start:'0',
-        year_end:'0',
-        month_end:'0',
-        day_end:'0',
-        date_plus_minus:'0',
-        exclusive_date_range:'False',
-        composition_place:''
+        slop:'0'
     };
     if (searchLemmas.checked) {
         params.field = 'autocomplete_lemmas';
     } else {
         params.field = 'autocomplete';
     }
-    formulaeChecks.forEach(function(formula) {
+    allCorporaChecks.forEach(function(formula) {
         if (formula.checked) {
             params.corpus.push(formula.value);
-        }
-    });
-    chartaeChecks.forEach(function(charter) {
-        if (charter.checked) {
-            params.corpus.push(charter.value);
         }
     });
     if (document.getElementById('in_order').checked) {
@@ -106,19 +87,7 @@ function buildUrl() {
     };
     params.fuzziness = document.getElementById('fuzziness').value;
     params.slop = document.getElementById('slop').value;
-    params.composition_place = document.getElementById('place-search').value;
-    params.year = document.getElementById('year').value;
-    params.month = document.getElementById('month').value;
-    params.day = document.getElementById('day').value;
-    params.date_plus_minus = document.getElementById('date_plus_minus').value;
-    params.exclusive_date_range = document.getElementById('exclusive_date_range').value;
-    params.year_start = document.getElementById('year_start').value;
-    params.month_start = document.getElementById('month_start').value;
-    params.day_start = document.getElementById('day_start').value;
-    params.year_end = document.getElementById('year_end').value;
-    params.month_end = document.getElementById('month_end').value;
-    params.day_end = document.getElementById('day_end').value;
-    var urlExt = "?corpus=" + params.corpus.join('+') + "&field=" + params.field + "&fuzziness=" + params.fuzziness + "&in_order=" + params.in_order + "&year=" + params.year + "&slop=" + params.slop + "&month=" + params.month + "&day=" + params.day + "&year_start=" + params.year_start + "&month_start=" + params.month_start + "&day_start=" + params.day_start + "&year_end=" + params.year_end + "&month_end=" + params.month_end + "&day_end=" + params.day_end + "&date_plus_minus=" + params.date_plus_minus + "&exclusive_date_range=" + params.exclusive_date_range + "&composition_place=" + params.composition_place;
+    var urlExt = "?corpus=" + params.corpus.join('+') + "&field=" + params.field + "&fuzziness=" + params.fuzziness + "&in_order=" + params.in_order + "&slop=" + params.slop;
     return urlExt;
 }
 

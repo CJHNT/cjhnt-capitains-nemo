@@ -30,10 +30,9 @@ class NemoFormulae(Nemo):
         ("/add_collections/<objectIds>/<reffs>", "r_add_text_collections", ["GET"]),
         ("/add_collection/<objectId>/<objectIds>/<reffs>", "r_add_text_collection", ["GET"]),
         ("/add_text/<objectId>/<objectIds>/<reffs>", "r_add_text_work", ["GET"]),
-        ("/lexicon/<objectId>", "r_lexicon", ["GET"]),
         ("/lang", "r_set_language", ["GET", "POST"]),
-        ("/sub_elements/<coll>/<objectIds>/<reffs>", "r_add_sub_elements", ["GET"]),
-        ("/sub_elements/<coll>", "r_get_sub_elements", ["GET"]),
+        # ("/sub_elements/<coll>/<objectIds>/<reffs>", "r_add_sub_elements", ["GET"]),
+        # ("/sub_elements/<coll>", "r_get_sub_elements", ["GET"]),
         ("/imprint", "r_impressum", ["GET"]),
         ("/nt_com/<objectIds>/passage/<subreferences>", "r_commentary_view", ['GET']),
         ("/text/<objectId>/passage", "r_first_passage", ["GET"])
@@ -57,22 +56,12 @@ class NemoFormulae(Nemo):
         # Routes
         "r_index", # "r_collection", "r_collections", "r_references", "r_assets", "r_multipassage",
         # Controllers
-        "get_inventory", "get_collection", "get_reffs", "get_passage", "get_siblings", "get_open_texts", "get_all_corpora",
+        "get_inventory", "get_collection", "get_reffs", "get_passage", "get_siblings", "get_all_corpora",
         # Translater
         "semantic", "make_coins", "expose_ancestors_or_children", "make_members", "transform",
         # Business logic
         # "view_maker", "route", #"render",
     ]
-
-    PROTECTED = [
-        # "r_index", "r_collections", "r_collection", "r_references", "r_multipassage", "r_lexicon",
-        # "r_add_text_collections", "r_add_text_collection", "r_corpus", "r_add_text_corpus"
-    ]
-
-    OPEN_COLLECTIONS = ['urn:cts:cjhnt:nt', 'urn:cts:greekLit:tlg0527', 'urn:cts:greekLit:tlg0018',
-                        'urn:cts:cjhnt:commentary']
-
-    HALF_OPEN_COLLECTIONS = []
 
     OPEN_NOTES = []
 
@@ -86,7 +75,6 @@ class NemoFormulae(Nemo):
             self.pdf_folder = kwargs["pdf_folder"]
             del kwargs["pdf_folder"]
         super(NemoFormulae, self).__init__(*args, **kwargs)
-        self.open_texts, self.half_open_texts = self.get_open_texts()
         self.sub_colls = self.get_all_corpora()
         self.app.jinja_env.filters["remove_from_list"] = self.f_remove_from_list
         self.app.jinja_env.filters["join_list_values"] = self.f_join_list_values
@@ -109,26 +97,6 @@ class NemoFormulae(Nemo):
                               str(self.resolver.getMetadata(m['id']).metadata.get_single(self.BIBO.AbbreviatedTitle))})
             colls[member['id']] = members
         return colls
-
-    def get_open_texts(self):
-        """ Creates the lists of open and half-open texts to be used later. I have moved this to a function to try to
-            cache it.
-
-        :return: list of open texts and half-open texts
-        """
-        open_texts = []
-        half_open_texts = []
-        for c in self.OPEN_COLLECTIONS: # [-1]: Add this once andecavensis is added back into OPEN_COLLECTIONS
-            try:
-                open_texts += [x.id for x in self.resolver.getMetadata(c).readableDescendants]
-            except UnknownCollection:
-                continue
-        for c in self.HALF_OPEN_COLLECTIONS:
-            try:
-                half_open_texts += [x.id for x in self.resolver.getMetadata(c).readableDescendants]
-            except UnknownCollection:
-                continue
-        return open_texts, half_open_texts
 
     def check_project_team(self):
         """ A convenience function that checks if the current user is a part of the project team"""
@@ -216,21 +184,6 @@ class NemoFormulae(Nemo):
         response.cache_control.public = True
         return response
 
-    def view_maker(self, name, instance=None):
-        """ Create a view
-
-        :param name: Name of the route function to use for the view.
-        :type name: str
-        :return: Route function which makes use of Nemo context (such as menu informations)
-        :rtype: function
-        """
-        # Avoid copy-pasta and breaking upon Nemo inside code changes by reusing the original view_maker function
-        # Super will go to the parent class and you will use it's "view_maker" function
-        route = super(NemoFormulae, self).view_maker(name, instance)
-        if name in self.PROTECTED:
-            route = login_required(route)
-        return route
-
     def r_collection(self, objectId, lang=None):
         data = super(NemoFormulae, self).r_collection(objectId, lang=lang)
         new_members = []
@@ -260,7 +213,7 @@ class NemoFormulae(Nemo):
                     "id": collection.id,
                     "model": str(collection.model),
                     "type": str(collection.type),
-                    "open_regesten": collection.id not in self.HALF_OPEN_COLLECTIONS
+                    "open_regesten": True
                 },
                 "readable": r,
                 "parents": self.make_parents(collection, lang=lang)
@@ -365,7 +318,8 @@ class NemoFormulae(Nemo):
             editions = [t for t in collection.children.values() if isinstance(t, CtsEditionMetadata)]
             if len(editions) == 0:
                 raise UnknownCollection('{}.{}'.format(collection.get_label(lang), subreference) + _l(' wurde nicht gefunden.'))
-            return redirect(url_for(".r_passage", objectId=str(editions[0].id), subreference=subreference))
+            objectId = editions[0].id
+            collection = self.get_collection(objectId)
         try:
             text = self.get_passage(objectId=objectId, subreference=subreference)
         except IndexError:
@@ -404,8 +358,8 @@ class NemoFormulae(Nemo):
             "notes": Markup(notes),
             "prev": prev,
             "next": next,
-            "open_regest": objectId not in self.half_open_texts,
-            "show_notes": objectId in self.OPEN_NOTES,
+            "open_regest": True,
+            "show_notes": True,
             "date": "{:04}-{:02}-{:02}".format(date.today().year, date.today().month, date.today().day)
         }
 
@@ -432,17 +386,16 @@ class NemoFormulae(Nemo):
         subrefers = subreferences.split('+')
         result_sents = request.args.get('result_sents')
         for i, id in enumerate(ids):
-            if self.check_project_team() is True or id in self.open_texts:
-                if subrefers[i] in ["all", 'first']:
-                    subref = self.get_reffs(id)[0][0]
-                else:
-                    subref = subrefers[i]
-                d = self.r_passage(id, subref, lang=lang)
-                del d['template']
-                if result_sents:
-                    d['text_passage'] = self.highlight_found_sents(d['text_passage'],
-                                                                   self.convert_result_sents(result_sents))
-                passage_data['objects'].append(d)
+            if subrefers[i] in ["all", 'first']:
+                subref = self.get_reffs(id)[0][0]
+            else:
+                subref = subrefers[i]
+            d = self.r_passage(id, subref, lang=lang)
+            del d['template']
+            if result_sents:
+                d['text_passage'] = self.highlight_found_sents(d['text_passage'],
+                                                               self.convert_result_sents(result_sents))
+            passage_data['objects'].append(d)
         if len(ids) > len(passage_data['objects']):
             flash(_('Mindestens ein Text, den Sie anzeigen möchten, ist nicht verfügbar.'))
         return passage_data
@@ -516,21 +469,6 @@ class NemoFormulae(Nemo):
         xml_string = re.sub(span_pattern, r'<span class="searched">\1</span>', xml_string)
         return Markup(xml_string)
 
-    def r_lexicon(self, objectId, lang=None):
-        """ Retrieve the eLexicon entry for a word
-
-        :param objectId: Collection identifiers separated by '+'
-        :type objectId: str
-        :param lang: Lang in which to express main data
-        :type lang: str
-        :return: Template, collections metadata and Markup object representing the text
-        :rtype: {str: Any}
-        """
-        subreference = "1"
-        d = self.r_passage(objectId, subreference, lang=lang)
-        d['template'] = 'main::lexicon_modal.html'
-        return d
-
     def r_impressum(self):
         """ Impressum route function
 
@@ -551,6 +489,7 @@ class NemoFormulae(Nemo):
 
         return str(xslt(etree.fromstring(text)))
 
+    ''' I may add these back in later.
     def r_add_sub_elements(self, coll, objectIds, reffs, lang=None):
         """ A convenience function to return all sub-corpora in all collections
 
@@ -568,3 +507,4 @@ class NemoFormulae(Nemo):
         texts = self.r_add_text_collection(coll, objectIds, reffs, lang=lang)
         texts["template"] = 'main::sub_element_snippet.html'
         return texts
+        '''
