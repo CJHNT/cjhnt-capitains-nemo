@@ -186,6 +186,7 @@ class NemoFormulae(Nemo):
 
     def r_collection(self, objectId, lang=None):
         data = super(NemoFormulae, self).r_collection(objectId, lang=lang)
+        data['interface'] = request.args.get('interface')
         new_members = []
         for member in sorted(data['collections']['members'], key=itemgetter('id')):
             new_members.append([member, self.make_members(self.resolver.getMetadata(member['id']), lang=lang)])
@@ -217,7 +218,8 @@ class NemoFormulae(Nemo):
                 },
                 "readable": r,
                 "parents": self.make_parents(collection, lang=lang)
-            }
+            },
+            'interface': request.args.get('interface')
         }
 
     def r_add_text_collections(self, objectIds, reffs, lang=None):
@@ -249,8 +251,10 @@ class NemoFormulae(Nemo):
         :return: Template and collections contained in given collection
         :rtype: {str: Any}
         """
-        collection = self.resolver.getMetadata(objectId)
-        members = [[member, self.make_members(self.resolver.getMetadata(member['id']), lang=lang)] for member in self.make_members(collection, lang=lang)]
+        d = self.r_collection(objectId, lang=lang)
+        d['prev_texts'] = objectIds
+        d['prev_reffs'] = reffs
+        d['interface'] = 'reading'
         """
         if self.check_project_team() is False:
             members = [x for x in members if x['id'] in self.OPEN_COLLECTIONS]
@@ -259,21 +263,7 @@ class NemoFormulae(Nemo):
                                     objectIds=objectIds, reffs=reffs, lang=lang))
         elif len(members) == 0:
             flash(_('Diese Sammlung steht unter Copyright und darf hier nicht gezeigt werden.'))"""
-        return {
-            "template": "main::sub_collections.html",
-            "collections": {
-                "current": {
-                    "label": str(collection.get_label(lang)),
-                    "id": collection.id,
-                    "model": str(collection.model),
-                    "type": str(collection.type),
-                },
-                "members": members,
-                "parents": self.make_parents(collection, lang=lang)
-            },
-            "prev_texts": objectIds,
-            "prev_reffs": reffs
-        }
+        return d
 
     def r_add_text_work(self, objectId, objectIds, reffs, lang=None):
         """ Route to browse collections and add another text to the view
@@ -285,8 +275,8 @@ class NemoFormulae(Nemo):
         :return: Template and collections contained in given collection
         :rtype: {str: Any}
         """
-        initial = self.r_work(objectId)
-        initial.update({'prev_texts': objectIds, 'prev_reffs': reffs})
+        initial = self.r_work(objectId, lang=lang)
+        initial.update({'prev_texts': objectIds, 'prev_reffs': reffs, 'interface': 'reading'})
         return initial
 
     def get_first_passage(self, objectId):
