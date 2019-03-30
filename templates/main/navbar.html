@@ -9,14 +9,11 @@
                 <a class="nav-link" href="https://www.cjh.uni-jena.de/" target="_blank">{{ _('Über das Projekt') }}</a>
             </li>
             <li class="nav-item active">
-                <a class="nav-link nav" href="{{url_for('InstanceNemo.r_collection', objectId='new_testament')}}">{{ _('Neues Testament') }}</a>
+                <a class="nav-link nav" href="{{url_for('InstanceNemo.r_collection', objectId='urn:cts:cjhnt:nt', interface='commentary')}}">{{ _('Kommentarinterface') }}</a>
             </li>
             <li class="nav-item active">
-                <a class="nav-link" href="{{url_for('InstanceNemo.r_collection', objectId='jewish_texts', )}}">{{ _('Jüdische Texte') }}</a>
-            </li>
-            <li class="nav-item active">
-                <a class="nav-link" href="{{url_for('InstanceNemo.r_collection', objectId='commentaries')}}">{{ _('Kommentare') }}</a>
-            </li>            
+                <a class="nav-link" href="{{url_for('InstanceNemo.r_collections')}}">{{ _('Leseinterface') }}</a>
+            </li>      
         </ul>
         {% include "search::search_box.html" %}
     </div>

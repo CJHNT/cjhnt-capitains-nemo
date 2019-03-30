@@ -20,7 +20,9 @@
 {% set view_route = 'InstanceNemo.r_multipassage' %}
 {% if 'urn:cts:cjhnt:nt' in collections.current.id %}
 {% set part_string = _('Kapitel') %}
+{% if interface == 'commentary' %}
 {% set view_route = 'InstanceNemo.r_commentary_view' %}
+{% endif %}
 {% elif 'urn:cts:greekLit:tlg0527' in collections.current.id %}
 {% set part_string = _('Kapitel') %}
 {% endif %}
@@ -42,9 +44,13 @@
             <li id="N{{number}}" class="list-group-item flex-column">
                 <div class="d-flex w-100 justify-content-between">
                     <ul class="list-inline">
-                    <li class="list-inline-item"><a class="card-link" href="{{url_for('InstanceNemo.r_multipassage', objectIds=collections.current.id, subreferences=number)}}"><h5>{{ part_string }} {{number}}{% if values %}: {% endif %}</h5></a></li>
+                    {% if interface == 'commentary' %}
+                    <li class="list-inline-item"><h5>{{ part_string }} {{number}}{% if values %}: {% endif %}</h5></li>
+                    {% else %}
+                    <li class="list-inline-item"><a class="card-link" href="{{url_for('InstanceNemo.r_multipassage', objectIds=[prev_texts, collections.current.id]|join_list_values('+'), subreferences=[prev_reffs, number]|join_list_values('+'))}}"><h5>{{ part_string }} {{number}}{% if values %}: {% endif %}</h5></a></li>
+                    {% endif %}
                     {% for verse in values %}
-                    <li class="list-inline-item"><a class="card-link" href="{{url_for(view_route, objectIds=collections.current.id, subreferences=verse)}}">{{ verse }}</a></li>
+                    <li class="list-inline-item"><a class="card-link" href="{{url_for(view_route, objectIds=[prev_texts, collections.current.id]|join_list_values('+'), subreferences=[prev_reffs, verse]|join_list_values('+'))}}">{{ verse }}</a></li>
                     {% endfor %}
                     </ul>
                 </div>

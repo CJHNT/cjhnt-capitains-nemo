@@ -114,7 +114,7 @@ class TestIndividualRoutes(Formulae_Testing):
             c.get('/add_collections/urn:cts:cjhnt:nt.86-Jud.grc001/1', follow_redirects=True)
             self.assertTemplateUsed('main::collection.html')
             c.get('/add_collection/urn:cts:cjhnt:nt/urn:cts:cjhnt:nt.86-Jud.grc001/1', follow_redirects=True)
-            self.assertTemplateUsed('main::sub_collections.html')
+            self.assertTemplateUsed('main::collection.html')
             c.get('/texts/urn:cts:cjhnt:nt.86-Jud.grc001+urn:cts:cjhnt:commentary.tlg0042006.opp-grc1/passage/1+145', follow_redirects=True)
             self.assertMessageFlashed('Fragmenta In Evangelium Joannis (In Catenis).145 was not found. The whole text is shown here.')
             self.assertTemplateUsed('main::multipassage.html')
@@ -154,7 +154,7 @@ class TestIndividualRoutes(Formulae_Testing):
             c.get('/add_collections/urn:cts:cjhnt:nt.86-Jud.grc001/1', follow_redirects=True)
             self.assertTemplateUsed('main::collection.html')
             c.get('/add_collection/urn:cts:cjhnt:nt/urn:cts:cjhnt:nt.86-Jud.grc001/1', follow_redirects=True)
-            self.assertTemplateUsed('main::sub_collections.html')
+            self.assertTemplateUsed('main::collection.html')
             # An authenicated user who surfs to the login page should be redirected to index
             c.get('/auth/login', follow_redirects=True)
             self.assertTemplateUsed('main::index.html')
@@ -197,7 +197,7 @@ class TestIndividualRoutes(Formulae_Testing):
             c.get('/add_collections/urn:cts:cjhnt:nt.86-Jud.grc001/1', follow_redirects=True)
             self.assertTemplateUsed('main::collection.html')
             c.get('/add_collection/urn:cts:cjhnt:nt/urn:cts:cjhnt:nt.86-Jud.grc001/1', follow_redirects=True)
-            self.assertTemplateUsed('main::sub_collections.html')
+            self.assertTemplateUsed('main::collection.html')
             # An authenicated user who surfs to the login page should be redirected to index
             c.get('/auth/login', follow_redirects=True)
             self.assertTemplateUsed('main::index.html')

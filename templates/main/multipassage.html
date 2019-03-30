@@ -38,7 +38,7 @@
             <div class="dropdown-divider"></div>
         {% endif %}
         <span class="dropdown-item-text">{{ _('einem anderen Text aus:') }}</span>
-        <a class="dropdown-item" href="{{url_for('InstanceNemo.r_add_text_collection', objectId='new_testament', objectIds=prev_texts, reffs=prev_reffs)}}">- <span class="text-primary">{{ _('Neuem Testament') }}</span></a>
+        <a class="dropdown-item" href="{{url_for('InstanceNemo.r_add_text_collection', objectId='urn:cts:cjhnt:nt', objectIds=prev_texts, reffs=prev_reffs)}}">- <span class="text-primary">{{ _('Neuem Testament') }}</span></a>
         <a class="dropdown-item" href="{{url_for('InstanceNemo.r_add_text_collection', objectId='jewish_texts', objectIds=prev_texts, reffs=prev_reffs)}}">- <span class="text-primary">{{ _('Jüdischen Texten') }}</span></a>
         <a class="dropdown-item" href="{{url_for('InstanceNemo.r_add_text_collection', objectId='commentaries', objectIds=prev_texts, reffs=prev_reffs)}}">- <span class="text-primary">{{ _('Kommentare') }}</span></a>
     </div>

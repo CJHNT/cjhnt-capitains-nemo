@@ -1,7 +1,7 @@
 build:
   languages:
     - python
-  pre: 
-    - git clone https://github.com/sonofmun/CJH_Test_Data.git
+  pre:
+    - git clone --single-branch --branch demo_texts https://github.com/sonofmun/CJH_Test_Data.git
 run:
   web: gunicorn app:flask_app

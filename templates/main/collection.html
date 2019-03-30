@@ -24,38 +24,53 @@
     </header>
     </div>
     <div class="row justify-content-center">
-    {% for coll, sub_colls in collections.members %}
-        <!--{% if coll.model == 'http://w3id.org/dts-ontology/resource' %}
-        <div class="col-6 col-xl-2">
-            <div class="card">
-                <div class="card-header">[{{coll.lang}}] {{ coll.label }}</div>
-                <div class="card-body text-center">
-                    <a class="card-link" href="{{url_for('InstanceNemo.r_multipassage', objectIds=[prev_texts, coll.id]|join_list_values('+'), subreferences=[prev_reffs, 'first']|join_list_values('+'))}}">{{ _('Read') }}</a>
+    {% if collections.members[0]|length == 2 %}
+        {% for coll, sub_colls in collections.members %}
+            <!--{% if coll.model == 'http://w3id.org/dts-ontology/resource' %}
+            <div class="col-6 col-xl-2">
+                <div class="card">
+                    <div class="card-header">[{{coll.lang}}] {{ coll.label }}</div>
+                    <div class="card-body text-center">
+                        <a class="card-link" href="{{url_for('InstanceNemo.r_multipassage', objectIds=[prev_texts, coll.id]|join_list_values('+'), subreferences=[prev_reffs, 'first']|join_list_values('+'))}}">{{ _('Read') }}</a>
+                    </div>
+                </div>
+            </div>{% endif %}-->
+            {% if not collections.current %}
+            <div class="col-xl-2 col-6">
+                <div class="card">
+                    <div class="card-header text-center pb-0"><h5>{{ coll.label|title }}</h5></div>
+                    <div class="card-body">
+                    <a class="card-link" href="{{url_for(coll_route, objectId=coll.id, objectIds=prev_texts, reffs=prev_reffs, interface=interface)}}">{{ _('Browse all') }} {{coll.label|title }}{% if coll.label|title == 'E-Lexikon' %} {{ _('Entries') }} {% endif %}</a>
+                    </div>
                 </div>
             </div>
-        </div>{% endif %}-->
-        {% if not collections.current %}
-        <div class="col-xl-2 col-6">
-            <div class="card">
-                <div class="card-header text-center pb-0"><h5>{{ coll.label|title }}</h5></div>
-                <div class="card-body">
-                <a class="card-link" href="{{url_for(coll_route, objectId=coll.id, objectIds=prev_texts, reffs=prev_reffs)}}">{{ _('Browse all') }} {{coll.label|title }}{% if coll.label|title == 'E-Lexikon' %} {{ _('Entries') }} {% endif %}</a>
+            {% elif sub_colls|length == 1 and sub_colls[0]['size'] == 0 %}
+            <div class="col-xl-2 col-6">
+                <div class="card">
+                    <div class="card-header text-center pb-0"><h5><a class="card-link" href="{{url_for(corp_route, objectId=sub_colls[0].id, objectIds=prev_texts, reffs=prev_reffs, interface=interface)}}">{{ coll.label|title }}</a></h5></div>
                 </div>
             </div>
-        </div>
-        {% elif collections.members|length <= 20 %}
-        <div class="col-xl-2 col-6">
-            <div class="card">
-                <div class="card-header text-center pb-0"><h5><a class="card-link" href="{{url_for(coll_route, objectId=coll.id, objectIds=prev_texts, reffs=prev_reffs)}}">{{ coll.label|title }}</a></h5></div>
+            {% else %}
+            <div class="col-xl-2 col-6">
+                <div class="card">
+                    <div class="card-header text-center pb-0"><h5><a class="card-link" href="{{url_for(coll_route, objectId=coll.id, objectIds=prev_texts, reffs=prev_reffs, interface=interface)}}">{{ coll.label|title }}</a></h5></div>
+                </div>
             </div>
-        </div>
-        {% else %}
-        <div class="col-xl-2 col-6">
-            <div class="card">
-                <div class="card-header text-center pb-0"><h5><a class="card-link" href="{{url_for(corp_route, objectId=sub_colls[0].id, objectIds=prev_texts, reffs=prev_reffs)}}">{{ coll.label|title }}</a></h5></div>
+            {% endif %}
+        {% endfor %}
+    {% else %}
+        {% for coll in collections.members %}
+            {% if coll.id == 'new_testament' %}
+                {% set coll_id = 'urn:cts:cjhnt:nt' %}
+            {% else %}
+                {% set coll_id = coll.id %}
+            {% endif %}
+            <div class="col-xl-2 col-6">
+                <div class="card">
+                    <div class="card-header text-center pb-0"><h5><a class="card-link" href="{{url_for(coll_route, objectId=coll_id, objectIds=prev_texts, reffs=prev_reffs, interface=interface)}}">{{ coll.label|title }}</a></h5></div>
+                </div>
             </div>
-        </div>
-        {% endif %}
-    {% endfor %}
+        {% endfor %}
+    {% endif %}
     </div>
 {% endblock %}
