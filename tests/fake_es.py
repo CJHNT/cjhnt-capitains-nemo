@@ -37,21 +37,26 @@ class FakeElasticsearch(object):
     def save_request(self, body):
         fileName = self.buildPath('_req.json')
         with open(fileName, 'w') as f:
-            return json.dump(body, f, indent=2)
+            return json.dump(body, f, indent=2, ensure_ascii=False)
 
     def save_response(self, resp):
         fileName = self.buildPath('_resp.json')
         for i, h in enumerate(resp['hits']['hits']):
-            resp['hits']['hits'][i]['_source']['text'] = 'text'
-            resp['hits']['hits'][i]['_source']['lemmas'] = 'text'
-            resp['hits']['hits'][i]['_source']['autocomplete'] = 'text'
+            if 'nt.78-Phm' not in h['_id']:
+                resp['hits']['hits'][i]['_source']['text'] = 'text'
+                resp['hits']['hits'][i]['_source']['lemmas'] = 'text'
+                resp['hits']['hits'][i]['_source']['autocomplete'] = 'text'
+                resp['hits']['hits'][i]['_source']['autocomplete_lemmas'] = 'text'
+                if 'highlight' in resp['hits']['hits'][i]:
+                    resp['hits']['hits'][i]['highlight']['autocomplete_lemmas'] = 'text'
+                    resp['hits']['hits'][i]['highlight']['autocomplete'] = 'text'
         with open(fileName, 'w') as f:
-            return json.dump(resp, f, indent=2)
+            return json.dump(resp, f, indent=2, ensure_ascii=False)
 
     def save_ids(self, ids):
         fileName = self.buildPath('_ids.json')
         with open(fileName, 'w') as f:
-            return json.dump(ids, f, indent=2)
+            return json.dump(ids, f, indent=2, ensure_ascii=False)
 
     def load_ids(self):
         fileName = self.buildPath('_ids.json')

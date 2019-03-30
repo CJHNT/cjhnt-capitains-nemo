@@ -16,6 +16,14 @@
 {% else %}
 {% set coll_route = 'InstanceNemo.r_add_text_collection' %}
 {% endif %}
+{% set part_string = _('Abschnitt') %}
+{% set view_route = 'InstanceNemo.r_multipassage' %}
+{% if 'urn:cts:cjhnt:nt' in collections.current.id %}
+{% set part_string = _('Kapitel') %}
+{% set view_route = 'InstanceNemo.r_commentary_view' %}
+{% elif 'urn:cts:greekLit:tlg0527' in collections.current.id %}
+{% set part_string = _('Kapitel') %}
+{% endif %}
 <header>
     <h1>
     {{collections.current.label}}
@@ -23,30 +31,23 @@
 </header>
 </div>
 {% if collections.readable %}
-<h4>{{ _('Gehe zu (Text):') }}</h4>
-{% for number, values in collections.readable|dictsort %}
-<a type="button" class="btn btn-outline-primary px-1 mx-0" href="#N{{number}}">{{values['name']}}</a>
+<h4>{{ _('Gehe zu ') + part_string + ':' }}</h4>
+{% for number, values in collections.readable %}
+<a type="button" class="btn btn-outline-primary px-1 mx-0" href="#N{{number}}">{{number}}</a>
 {% endfor %}
 <div class="row">
     <div class="{{ 'col-6' if collections.current.open_regesten or current_user.project_team else 'col-3' }}">
         <ul class="list-group list-group-flush">
-        {% for number, values in collections.readable|dictsort %}
+        {% for number, values in collections.readable %}
             <li id="N{{number}}" class="list-group-item flex-column">
                 <div class="d-flex w-100 justify-content-between">
-                    <h5>{{ _('Nummer') }} {{values['name']}}: </h5>
-                    <p>{{ _("Lesen: ") }}{% if 'andecavensis' in collections.current.id %}{% for urn, lang in values['versions'] %}<a class="card-link" href="{{url_for('InstanceNemo.r_multipassage', objectIds=[prev_texts, urn]|join_list_values('+'), subreferences=[prev_reffs, 'all']|join_list_values('+'))}}">[{{lang}}]</a>{% endfor %}{% else %}{% for urn, lang in values['versions']|sort %}<a class="card-link" href="{{url_for('InstanceNemo.r_multipassage', objectIds=[prev_texts, urn]|join_list_values('+'), subreferences=[prev_reffs, 'all']|join_list_values('+'))}}">{{_('Version') + ' ' + loop.index|string}}</a>{% endfor %}{% endif %}</p>
+                    <ul class="list-inline">
+                    <li class="list-inline-item"><a class="card-link" href="{{url_for('InstanceNemo.r_multipassage', objectIds=collections.current.id, subreferences=number)}}"><h5>{{ part_string }} {{number}}{% if values %}: {% endif %}</h5></a></li>
+                    {% for verse in values %}
+                    <li class="list-inline-item"><a class="card-link" href="{{url_for(view_route, objectIds=collections.current.id, subreferences=verse)}}">{{ verse }}</a></li>
+                    {% endfor %}
+                    </ul>
                 </div>
-                {% if current_user.project_team or collections.current.open_regesten %}
-                {% if values['short_regest'] %}<p class="mb-1">{{ values['short_regest'] }}</p>{% endif %}
-                {{ make_dates(values) }}
-                {% for p in values['regest'] %}
-                <p><small>{{ p }}</small></p>
-                {% endfor %}
-                <p class="mb-0 text-right"><a href="#top"><small>{{ _('Zurück zum Seitenanfang') }}</small></a></p>
-                {% else %}
-                {{ make_dates(values) }}
-                <p class="mb-0"><a href="#top"><small>{{ _('Zurück zum Seitenanfang') }}</small></a></p>
-                {% endif %}
             </li>
         {% endfor %}
         </ul>

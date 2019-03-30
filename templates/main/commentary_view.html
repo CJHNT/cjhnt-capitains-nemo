@@ -12,11 +12,11 @@
 
 {% macro nav(text) %}
     {% if text.prev %}
-    <a href="{{url_for('InstanceNemo.r_commentary_view', nt_book=text.objectId, subreference=text.prev) }}">«<small>{{ _('Vorheriger Vers') }}</small>
+    <a href="{{url_for('InstanceNemo.r_commentary_view', objectIds=text.objectId, subreferences=text.prev) }}">«<small>{{ _('Vorheriger Vers') }}</small>
     </a>
     {% endif %}
     {% if text.next %}
-    <a class="ml-auto" href="{{url_for('InstanceNemo.r_commentary_view', nt_book=text.objectId, subreference=text.next) }}"><small>{{ _('Nächster Vers') }}</small>»
+    <a class="ml-auto" href="{{url_for('InstanceNemo.r_commentary_view', objectIds=text.objectId, subreferences=text.next) }}"><small>{{ _('Nächster Vers') }}</small>»
     </a>
     {% endif %}
 {% endmacro %}
