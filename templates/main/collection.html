@@ -18,7 +18,7 @@
         {% if collections.current %}
         {{collections.current.label}}
         {% else %}
-        {{ _('Text Collections') }}
+        {{ _('Text Sammlungen') }}
         {% endif %}
         </h1>
     </header>
@@ -26,21 +26,12 @@
     <div class="row justify-content-center">
     {% if collections.members[0]|length == 2 %}
         {% for coll, sub_colls in collections.members %}
-            <!--{% if coll.model == 'http://w3id.org/dts-ontology/resource' %}
-            <div class="col-6 col-xl-2">
-                <div class="card">
-                    <div class="card-header">[{{coll.lang}}] {{ coll.label }}</div>
-                    <div class="card-body text-center">
-                        <a class="card-link" href="{{url_for('InstanceNemo.r_multipassage', objectIds=[prev_texts, coll.id]|join_list_values('+'), subreferences=[prev_reffs, 'first']|join_list_values('+'))}}">{{ _('Read') }}</a>
-                    </div>
-                </div>
-            </div>{% endif %}-->
             {% if not collections.current %}
             <div class="col-xl-2 col-6">
                 <div class="card">
                     <div class="card-header text-center pb-0"><h5>{{ coll.label|title }}</h5></div>
                     <div class="card-body">
-                    <a class="card-link" href="{{url_for(coll_route, objectId=coll.id, objectIds=prev_texts, reffs=prev_reffs, interface=interface)}}">{{ _('Browse all') }} {{coll.label|title }}{% if coll.label|title == 'E-Lexikon' %} {{ _('Entries') }} {% endif %}</a>
+                    <a class="card-link" href="{{url_for(coll_route, objectId=coll.id, objectIds=prev_texts, reffs=prev_reffs, interface=interface)}}">{{ _('Alle anschauen') }} {{coll.label|title }}{% if coll.label|title == 'E-Lexikon' %} {{ _('Einträge') }} {% endif %}</a>
                     </div>
                 </div>
             </div>
