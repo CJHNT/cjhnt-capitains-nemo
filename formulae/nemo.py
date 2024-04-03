@@ -1,18 +1,20 @@
-from flask import url_for, Markup, g, session, flash, request
+from flask import url_for, Markup, g, session, flash, request, abort, send_from_directory
 from flask_login import current_user, login_required
 from flask_babel import _, refresh, get_locale
 from flask_babel import lazy_gettext as _l
 from werkzeug.utils import redirect
-from flask_nemo import Nemo
-from rdflib.namespace import DCTERMS, Namespace
+from flask_nemo import Nemo, filters
+from rdflib.namespace import DCTERMS, DC, Namespace
 from MyCapytain.common.constants import Mimetypes
-from MyCapytain.resources.prototypes.cts.inventory import CtsWorkMetadata, CtsEditionMetadata
+from MyCapytain.resources.collections.capitains import XmlCapitainsReadableMetadata, XmlCapitainsCollectionMetadata
 from MyCapytain.errors import UnknownCollection
 from formulae.search.forms import SearchForm
 from lxml import etree
+from typing import List, Tuple, Union, Match, Dict, Any, Sequence, Callable
 from .errors.handlers import e_internal_error, e_not_found_error, e_unknown_collection_error
 import re
 from datetime import date
+from urllib.parse import quote
 from string import punctuation
 from .models import NtComRels
 from operator import itemgetter
@@ -184,6 +186,105 @@ class NemoFormulae(Nemo):
         response.cache_control.public = True
         return response
 
+    def semantic(self, collection: Union[XmlCapitainsCollectionMetadata, XmlCapitainsReadableMetadata],
+                 parent: XmlCapitainsCollectionMetadata = None) -> str:
+        """ Generates a SEO friendly string for given collection
+
+        :param collection: Collection object to generate string for
+        :param parent: Current collection parent
+        :return: SEO/URL Friendly string
+         """
+        # The order of the ancestors isn't kept in MyCap v3 (ancestors is a dictionary)
+        #  So the reversing of the list of parent values probably doesn't make much sense here.
+        if parent is not None:
+            collections = list(parent.ancestors.values())[::-1] + [parent, collection]
+        else:
+            collections = list(collection.ancestors.values())[::-1] + [collection]
+
+        return filters.slugify("--".join([item.get_label() for item in collections if item.get_label()]))
+
+    def make_coins(self, collection: Union[XmlCapitainsCollectionMetadata, XmlCapitainsReadableMetadata],
+                   text: XmlCapitainsReadableMetadata, subreference: str = "", lang: str = None) -> str:
+        """ Creates a CoINS Title string from information
+
+        :param collection: Collection to create coins from
+        :param text: Text/Passage object
+        :param subreference: Subreference
+        :param lang: Locale information
+        :return: Coins HTML title value
+        """
+        if lang is None:
+            lang = self.__default_lang__
+        return "url_ver=Z39.88-2004" \
+               "&ctx_ver=Z39.88-2004" \
+               "&rft_val_fmt=info%3Aofi%2Ffmt%3Akev%3Amtx%3Abook" \
+               "&rft_id={cid}" \
+               "&rft.genre=bookitem" \
+               "&rft.btitle={title}" \
+               "&rft.edition={edition}"\
+               "&rft.au={author}" \
+               "&rft.atitle={pages}" \
+               "&rft.language={language}" \
+               "&rft.pages={pages}".format(
+                    title=quote(str(text.get_title(lang))), author=quote(str(text.get_creator(lang))),
+                    cid=url_for("InstanceNemo.r_collection", objectId=collection.id, _external=True),
+                    language=collection.lang, pages=quote(subreference), edition=quote(str(text.get_description(lang)))
+                 )
+
+    @staticmethod
+    def sort_parents(d: Dict[str, Union[str, int]]) -> int:
+        """ Sort parents from closest to furthest
+
+        :param d: The dictionary to be sorted
+        :return: integer representing how deep in the collection a collection stands from lowest (i.e., text) to highest
+        """
+        return 10 - len(d['ancestors'])
+
+    @staticmethod
+    def sort_sigla(x: str) -> list:
+        sorting_groups = list(re.search(r'(\D+)(\d+)?(\D+)?', x).groups(default=0))
+        sorting_groups[1] = int(sorting_groups[1])
+        return sorting_groups
+
+    def make_parents(self, collection: Union[XmlCapitainsCollectionMetadata, XmlCapitainsReadableMetadata],
+                     lang: str=None) -> List[Dict[str, Union[str, int]]]:
+        """ Build parents list for given collection
+
+        :param collection: Collection to build dict view of for its members
+        :param lang: Language to express data in
+        :return: List of basic objects
+        """
+        parents = [
+            {
+                "id": member.id,
+                "label": str(member.metadata.get_single(DC.title)),
+                "model": str(member.model),
+                "type": str(member.type),
+                "size": member.size,
+                "subtype": member.subtype,
+                "ancestors": member.ancestors,
+                "short_title": str(member.metadata.get_single(self.BIBO.AbbreviatedTitle))
+            }
+            for member in collection.ancestors.values()
+            if member.get_label()
+        ]
+        parents = sorted(parents, key=self.sort_parents)
+        return parents
+
+    def r_assets(self, filetype, asset):
+        """ Route for specific assets.
+
+        :param filetype: Asset Type
+        :param asset: Filename of an asset
+        :return: Response
+        """
+        if filetype in self.assets and asset in self.assets[filetype] and self.assets[filetype][asset]:
+            return send_from_directory(
+                directory=self.assets[filetype][asset],
+                path=asset
+            )
+        abort(404)
+
     def r_collection(self, objectId, lang=None):
         data = super(NemoFormulae, self).r_collection(objectId, lang=lang)
         data['interface'] = request.args.get('interface')
@@ -205,7 +306,12 @@ class NemoFormulae(Nemo):
         """
         collection = self.resolver.getMetadata(objectId)
         reffs = self.resolver.getReffs(objectId)
-        r = [(reff, self.resolver.getReffs(objectId, subreference=reff)) for reff in reffs]
+        r = list()
+        for reff in reffs:
+            try:
+                r.append((str(reff[0][0]), self.resolver.getReffs(objectId, subreference=str(reff[0][0]))))
+            except:
+                r.append((str(reff[0][0]), []))
         return {
             "template": "main::sub_collection.html",
             "collections": {
@@ -304,8 +410,8 @@ class NemoFormulae(Nemo):
         """
         # pdf_path = ''
         collection = self.get_collection(objectId)
-        if isinstance(collection, CtsWorkMetadata):
-            editions = [t for t in collection.children.values() if isinstance(t, CtsEditionMetadata)]
+        if isinstance(collection, XmlCapitainsCollectionMetadata):
+            editions = [t for t in metadata.children.values() if isinstance(t, XmlCapitainsReadableMetadata) and 'cts:edition' in t.subtype]
             if len(editions) == 0:
                 raise UnknownCollection('{}.{}'.format(collection.get_label(lang), subreference) + _l(' wurde nicht gefunden.'))
             objectId = editions[0].id
@@ -370,8 +476,8 @@ class NemoFormulae(Nemo):
         ids = objectIds.split('+')
         translations = {}
         for i in ids:
-            p = self.resolver.getMetadata(self.resolver.getMetadata(i).parent.id)
-            translations[i] = [m for m in p.readableDescendants if m.id not in ids]
+            p = self.resolver.getMetadata(self.make_parents(self.resolver.getMetadata(i))[0]['id'])
+            translations[i] = [v for k, v in p.readableDescendants.items() if k not in ids]
         passage_data = {'template': 'main::multipassage.html', 'objects': [], "translation": translations}
         subrefers = subreferences.split('+')
         result_sents = request.args.get('result_sents')

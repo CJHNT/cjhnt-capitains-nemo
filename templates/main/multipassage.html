@@ -47,12 +47,12 @@
 
 {% macro nav(text, all_texts, new_reffs, index) %}
     {% if text.prev %}
-    {% set prev_reffs = new_reffs|replace_indexed_item(index, text.prev) %}
+    {% set prev_reffs = new_reffs|replace_indexed_item(index, text.prev|string) %}
     <a href="{{url_for('InstanceNemo.r_multipassage', objectIds=all_texts|join_list_values('+'), subreferences=prev_reffs|join_list_values('+')) }}">«<small>{{ _('Vorherige Seite') }}</small>
     </a>
     {% endif %}
     {% if text.next %}
-    {% set next_reffs = new_reffs|replace_indexed_item(index, text.next) %}
+    {% set next_reffs = new_reffs|replace_indexed_item(index, text.next|string) %}
     <a class="ml-auto" href="{{url_for('InstanceNemo.r_multipassage', objectIds=all_texts|join_list_values('+'), subreferences=next_reffs|join_list_values('+')) }}"><small>{{ _('Nächste Seite') }}</small>»
     </a>
     {% endif %}

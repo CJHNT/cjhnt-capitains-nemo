@@ -33,7 +33,7 @@ def create_app(config_class=Config):
     login.init_app(app)
     mail.init_app(app)
     bootstrap.init_app(app)
-    babel.init_app(app)
+    babel.init_app(app, locale_selector=get_locale)
     from .auth import bp as auth_bp
     app.register_blueprint(auth_bp, url_prefix="/auth")
     from .search import bp as search_bp
@@ -52,7 +52,6 @@ def create_app(config_class=Config):
     return app
 
 
-@babel.localeselector
 def get_locale():
     if 'locale' in session:
         return session['locale']

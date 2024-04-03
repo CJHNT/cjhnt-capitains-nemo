@@ -4,7 +4,7 @@ from flask_babel import lazy_gettext as _l
 from flask_babel import _
 from wtforms import StringField, BooleanField, SelectMultipleField, SelectField, SubmitField
 from wtforms.validators import DataRequired, ValidationError
-from wtforms.fields.html5 import IntegerRangeField
+from wtforms.fields import IntegerField
 from wtforms.widgets import CheckboxInput
 
 
@@ -47,10 +47,7 @@ class AdvancedSearchForm(SearchForm):
     fuzziness = SelectField(_l("Unschärfegrad"),
                             choices=[("0", '0'), ("1", "1"), ("2", '2'), ('AUTO', _('AUTO'))],
                             default="0")
-    slop = IntegerRangeField(_l("Suchradius"),
-                             validators=[validate_optional_number_range(min=0, max=100,
-                                                                        message=_('Der Suchradius muss zwischen 0 und 100 liegen'))],
-                             default=0)
+    slop = IntegerField(_l("Suchradius"), default=0)
     in_order = BooleanField(_l('Wortreihenfolge beachten?'))
     corpus = SelectMultipleField(_l('Corpora'), choices=[])
     submit = SubmitField(_l('Suche'))

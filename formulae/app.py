@@ -1,16 +1,9 @@
-from werkzeug.contrib.cache import FileSystemCache
-from capitains_nautilus.cts.resolver import NautilusCTSResolver
-from capitains_nautilus.flask_ext import FlaskNautilus
+from MyCapytain.resolvers.capitains.local import XmlCapitainsLocalResolver
 from . import create_app
 from .nemo import NemoFormulae
-from .dispatcher_builder import organizer
 
 flask_app = create_app()
-resolver = NautilusCTSResolver(flask_app.config['CORPUS_FOLDERS'],
-                               dispatcher=organizer,
-                               # cache=FileSystemCache(flask_app.config['CACHE_DIRECTORY'])
-                               )
-# nautilus_api = FlaskNautilus(prefix="/api", resolver=resolver, app=flask_app)
+resolver = XmlCapitainsLocalResolver(flask_app.config['CORPUS_FOLDERS'])
 
 nemo = NemoFormulae(
     name="InstanceNemo",
