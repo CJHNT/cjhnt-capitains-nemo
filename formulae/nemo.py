@@ -37,7 +37,8 @@ class NemoFormulae(Nemo):
         # ("/sub_elements/<coll>", "r_get_sub_elements", ["GET"]),
         ("/imprint", "r_impressum", ["GET"]),
         ("/nt_com/<objectIds>/passage/<subreferences>", "r_commentary_view", ['GET']),
-        ("/text/<objectId>/passage", "r_first_passage", ["GET"])
+        ("/text/<objectId>/passage", "r_first_passage", ["GET"]),
+        ("/snippet/<objectId>/subreference/<subreference>", "r_get_snippet", ["GET"])
     ]
     SEMANTIC_ROUTES = [
         "r_collection", "r_references", "r_multipassage"
@@ -309,9 +310,9 @@ class NemoFormulae(Nemo):
         r = list()
         for reff in reffs:
             try:
-                r.append((str(reff[0][0]), self.resolver.getReffs(objectId, subreference=str(reff[0][0]))))
+                r.append((str(reff), [str(x) for x in self.resolver.getReffs(objectId, subreference=str(reff))]))
             except:
-                r.append((str(reff[0][0]), []))
+                r.append((str(reff), []))
         return {
             "template": "main::sub_collection.html",
             "collections": {
@@ -524,6 +525,11 @@ class NemoFormulae(Nemo):
             del d['template']
             passage_data['comm_sections'].append(d)
         return passage_data
+    
+    def r_get_snippet(self, objectId: str, subreference: str):
+        data = self.r_passage(objectId=objectId, subreference=subreference)
+        data['template'] = 'main::source_collapse.html'
+        return data
 
     def convert_result_sents(self, sents):
         """ Remove extraneous markup and punctuation from the result_sents returned from the search page

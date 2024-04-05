@@ -4,14 +4,6 @@
 <header>
     <h3 class="entry-title text-center">{{object.collections.current.title}}</h3>
     <span class="text-center">{{ version_menu(object.objectId) }}</span>
-    {% if 'elexicon' not in object.objectId %}
-        {% if object.open_regest or current_user.project_team %}
-        <p class="entry-summary text-center"><button type="button" class="btn btn-link" data-toggle="modal" data-target="#{{ object.objectId|replace(':', '')|replace('.', '') }}-modal">{{ _('Regest') }}</button></p>
-        {% include "main::regest_modal.html" %}
-        {% else %}
-        <br>
-        {% endif %}
-    {% endif %}
     <span class='Z3988' title='{{object.collections.current.coins}}'></span>
     
 </header>

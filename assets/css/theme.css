@@ -413,3 +413,25 @@ nav .dropdown:hover .dropdown-menu {
     height: 93px;
     width: 317px;
 }
+
+.cjh-Überschrift-1 {
+    margin-bottom: .5rem;
+    font-family: inherit;
+    font-weight: 500;
+    line-height: 1.2;
+    color: inherit;
+    font-size: 1.75rem;
+}
+
+.cjh-Überschrift-2 {
+    margin-bottom: .5rem;
+    font-family: inherit;
+    font-weight: 500;
+    line-height: 1.2;
+    color: inherit;
+    font-size: 1.25rem;
+}
+
+seg.urn {
+    text-decoration: underline dashed;
+}

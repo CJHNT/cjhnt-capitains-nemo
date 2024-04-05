@@ -34,6 +34,35 @@ $(document).ready(function () {
     $(".no-copy").on("contextmenu",function(e){
         return false;
     });
+
+    $('#source-collapse0').collapse({toggle: false})
+
+    $('.source-button').on("click", function() {
+        var collapseTarget = $(this).attr('data-target');
+        var currentId = $(this).attr('id');
+        if ($(collapseTarget).attr('lastused') == currentId) {
+            $(collapseTarget).attr('lastused', '');
+            $(collapseTarget).collapse('hide')
+        } else {
+            $(collapseTarget).attr('lastused', currentId)
+            var urn = $(this).attr('urn');
+            var target = $(this).attr('target')
+            var request = new XMLHttpRequest();
+            request.onreadystatechange = function() {
+                if (this.readyState == 4) {
+                    if (this.status == 200) {
+                        $(collapseTarget).html(this.responseText);
+                        $(collapseTarget).collapse('show');
+                    } else {
+                        alert("Passage " + urn + ':' + target + " not found")
+                    }
+                }
+            };
+            request.open('GET', '/snippet/' + urn + '/subreference/' + target, true);
+            request.send()
+        }
+    }
+    )
 });
 
 function hideNotes(c) {

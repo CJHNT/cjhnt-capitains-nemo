@@ -207,8 +207,11 @@
     </xsl:template>
     
     <xsl:template match="t:head">
-        <h3 class="head"><xsl:apply-templates />
-            <xsl:apply-templates select="@urn" /></h3>
+        <xsl:element name="seg">
+            <xsl:attribute name="class"><xsl:value-of select="@type"/></xsl:attribute>
+            <xsl:apply-templates />
+            <xsl:apply-templates select="@urn" />
+        </xsl:element>
     </xsl:template>
     
     <xsl:template match="@urn">
@@ -327,13 +330,28 @@
     <xsl:template match="t:app"/>
     
     <xsl:template match="t:ref">
-        <a class="urn">
-            <xsl:attribute name="href">
+        <button class="source-button btn btn-link" aria-expanded="false">
+            <xsl:attribute name="target">
                 <xsl:value-of select="@target"/>
             </xsl:attribute>
+            <xsl:attribute name="urn">
+                <xsl:value-of select="@cRef"/>
+            </xsl:attribute>
+            <xsl:attribute name="id">source-button<xsl:value-of select="count(preceding::t:ref)"/></xsl:attribute>
+            <xsl:attribute name="data-target">#source-collapse<xsl:value-of select="count(preceding::t:p[@n='quellen'])"/></xsl:attribute>
+            <xsl:attribute name="aria-controls">source-collapse<xsl:value-of select="count(preceding::t:p[@n='quellen'])"/></xsl:attribute>
             <xsl:value-of select="." />
-            [*]
-        </a>
+        </button>
+    </xsl:template>
+    
+    <xsl:template match="t:p[@n='quellen']">
+        <p>
+            <xsl:apply-templates/>
+            <xsl:element name="div">
+                <xsl:attribute name="class">collapse source-collapse</xsl:attribute>
+                <xsl:attribute name="id">source-collapse<xsl:value-of select="count(preceding::t:p[@n='quellen'])"/></xsl:attribute>
+            </xsl:element>
+        </p>
     </xsl:template>
     
     <xsl:template match="t:choice">
