@@ -546,7 +546,17 @@ class NemoFormulae(Nemo):
     
     def r_get_snippet(self, objectId: str, subreference: str):
         data = self.r_passage(objectId=objectId, subreference=subreference)
+        print(objectId)
         data['template'] = 'main::source_collapse.html'
+        translation_id = re.sub(r'grc(?=\d+)', 'eng', objectId)
+        if translation_id != objectId:
+            try:
+                translation_data = self.r_passage(objectId=re.sub(r'grc(?=\d+)', 'eng', objectId), subreference=subreference)
+                data['translation_passage'] = translation_data['text_passage']
+            except:
+                data["translation_passage"] = ''
+        else:
+            data["translation_passage"] = ''
         if 'cjhnt:nt' in objectId:
             data['template'] = 'main::commentary_nt.html'
         return data

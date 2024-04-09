@@ -41,6 +41,12 @@
                     <div class="card-header text-center pb-0"><h5><a class="card-link" href="{{url_for(corp_route, objectId=sub_colls[0].id, objectIds=prev_texts, reffs=prev_reffs, interface=interface)}}">{{ coll.label|title }}</a></h5></div>
                 </div>
             </div>
+            {% elif sub_colls|length == 0 %}
+            <div class="col-xl-2 col-6">
+                <div class="card">
+                    <div class="card-header text-center pb-0"><h5><a class="card-link" href="{{url_for(corp_route, objectId=coll.id, objectIds=prev_texts, reffs=prev_reffs, interface=interface)}}">{{ coll.label|title }}</a></h5></div>
+                </div>
+            </div>
             {% else %}
             <div class="col-xl-2 col-6">
                 <div class="card">

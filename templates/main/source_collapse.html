@@ -1,6 +1,6 @@
 
 <div class="card card-body bg-light">
     <span class="source_title">{{ collections.current.title }} {{ subreference }}</span>
-    <span class="source_text">{{ text_passage }}</span>
-    <span class="source_translation">{{ translation_passage }}</span>
+    <span class="source_text">(txt) {{ text_passage }}</span>
+    {% if translation_passage %}<span class="source_translation">(Übs) {{ translation_passage }}</span>{% endif %}
 </div>
