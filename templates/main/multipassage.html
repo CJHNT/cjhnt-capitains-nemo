@@ -3,13 +3,13 @@
 {% macro header_passage(object) %}
 <header>
     <h3 class="entry-title text-center">{{object.collections.current.title}}</h3>
-    <span class="text-center">{{ version_menu(object.objectId) }}</span>
+    <span class="text-center">{{ version_menu(object) }}</span>
     <span class='Z3988' title='{{object.collections.current.coins}}'></span>
     
 </header>
 {% endmacro %}
 
-{% macro version_menu(objId) %}
+{% macro version_menu(object) %}
 {% if objects %}
     {% set prev_texts = objects|join('+', attribute='objectId') %}
     {% set prev_reffs = objects|join('+', attribute='subreference') %}
@@ -22,12 +22,18 @@
         {{ _('Vergleichen mit...') }}
     </button>
     <div class="dropdown-menu version-dropdown">
-        {% if translation[objId] %}
+        {% if translation[object.objectId] %}
             <span class="dropdown-item-text">{{ _('einer anderen Version') }}</span>
-            {% for t in translation[objId] %}
+            {% for t in translation[object.objectId] %}
             <a class="dropdown-item" href="{{url_for('InstanceNemo.r_multipassage', objectIds=[prev_texts, t.id]|join_list_values('+'), subreferences=[prev_reffs, 'all']|join_list_values('+'))}}">- <span class="text-primary">{{ t.get_label()|string + ' (' + t.lang + ')' }}</span></a>
             {% endfor %}
             <div class="dropdown-divider"></div>
+        {% endif %}
+        {% if object.collections.current.parallels %}
+        <span class="dropdown-item-text">{{ _('einer Stelle im Kommentar') }}</span>
+            {% for urn, subref, name in object.collections.current.parallels %}
+            <a class="dropdown-item" href="{{url_for('InstanceNemo.r_multipassage', objectIds=[prev_texts, urn]|join_list_values('+'), subreferences=[prev_reffs, subref]|join_list_values('+'))}}">- <span class="text-primary">{{ name }}</span></a>
+            {% endfor %}
         {% endif %}
         <span class="dropdown-item-text">{{ _('einem anderen Text aus:') }}</span>
         <a class="dropdown-item" href="{{url_for('InstanceNemo.r_add_text_collection', objectId='urn:cts:cjhnt:nt', objectIds=prev_texts, reffs=prev_reffs)}}">- <span class="text-primary">{{ _('Neuem Testament') }}</span></a>
