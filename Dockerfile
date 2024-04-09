@@ -8,8 +8,12 @@ LABEL fly_launch_runtime="flask"
 
 WORKDIR /code
 
+RUN apt update && apt install --no-install-recommends -y git
+
 COPY requirements.txt requirements.txt
 RUN pip3 install -r requirements.txt
+
+RUN git clone --single-branch --branch demo_texts https://github.com/sonofmun/CJH_Test_Data.git
 
 COPY . .
 
