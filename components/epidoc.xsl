@@ -138,6 +138,10 @@
                 <xsl:when test="child::t:l">
                     <ol><xsl:apply-templates /></ol>
                 </xsl:when>
+                <xsl:when test="@subtype='verse'">
+                    <seg class="nt-cit"><xsl:value-of select="concat(parent::t:div[@subtype='chapter']/@n, ',', @n)"/>: </seg>
+                    <xsl:apply-templates />
+                </xsl:when>
                 <xsl:otherwise>
                     <xsl:apply-templates/>
                 </xsl:otherwise>
@@ -168,14 +172,17 @@
         <xsl:value-of select="." />
     </xsl:template>
     
+    <xsl:template match="t:div[@subtype='verse']/t:p">
+            <xsl:apply-templates select="@urn" />
+            <xsl:apply-templates/>
+    </xsl:template>
     
     <xsl:template match="t:p">
         <p>
             <xsl:apply-templates select="@urn" />
             <xsl:apply-templates/>
         </p>
-    </xsl:template>
-    
+    </xsl:template>    
     
     <xsl:template match="t:lb" />
     
@@ -211,11 +218,18 @@
             <xsl:attribute name="class"><xsl:value-of select="@type"/></xsl:attribute>
             <xsl:apply-templates />
             <xsl:apply-templates select="@urn" />
-        </xsl:element>
+        </xsl:element>        
+        <xsl:if test="@type = 'cjh-Überschrift-1' or @type = 'cjh-Überschrift-2'">                
+            <xsl:element name="seg">
+                <xsl:attribute name="class">nt-source-text</xsl:attribute>
+                <xsl:attribute name="source-text"><xsl:value-of select="substring-before(parent::t:div[@subtype='commentary_section']/@source, ';')"/></xsl:attribute>
+                <xsl:attribute name="source-verse"><xsl:value-of select="substring-after(parent::t:div[@subtype='commentary_section']/@source, ';')"/></xsl:attribute>
+            </xsl:element>
+        </xsl:if>
     </xsl:template>
     
     <xsl:template match="@urn">
-        <xsl:attribute name="data-urn"><xsl:value-of select="."/>/></xsl:attribute>
+        <xsl:attribute name="data-urn"><xsl:value-of select="."/></xsl:attribute>
     </xsl:template>
     
     <xsl:template match="t:sp">

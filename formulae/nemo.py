@@ -18,6 +18,7 @@ from urllib.parse import quote
 from string import punctuation
 from .models import NtComRels
 from operator import itemgetter
+from json import load as json_load, JSONDecodeError
 
 
 class NemoFormulae(Nemo):
@@ -86,6 +87,18 @@ class NemoFormulae(Nemo):
         self.app.register_error_handler(500, e_internal_error)
         self.app.before_request(self.before_request)
         self.app.after_request(self.after_request)
+        self.parallel_texts = self.make_parallel_texts()
+    
+    def make_parallel_texts(self) -> dict:
+        """ Ingests an existing JSON file that contains notes about specific manuscript transcriptions"""
+        for j in self.app.config['TEXT_PARALLELS']:
+            with open(j) as f:
+                try:
+                    text_parallel_file = json_load(f)
+                except JSONDecodeError:
+                    self.app.logger.warning(j + ' is not a valid JSON file. Unable to load valid collected collections from it.')
+                    continue
+        return text_parallel_file
 
     def get_all_corpora(self):
         """ A convenience function to return all sub-corpora in all collections
@@ -412,7 +425,7 @@ class NemoFormulae(Nemo):
         # pdf_path = ''
         collection = self.get_collection(objectId)
         if isinstance(collection, XmlCapitainsCollectionMetadata):
-            editions = [t for t in metadata.children.values() if isinstance(t, XmlCapitainsReadableMetadata) and 'cts:edition' in t.subtype]
+            editions = [t for t in collection.children.values() if isinstance(t, XmlCapitainsReadableMetadata) and 'cts:edition' in t.subtype]
             if len(editions) == 0:
                 raise UnknownCollection('{}.{}'.format(collection.get_label(lang), subreference) + _l(' wurde nicht gefunden.'))
             objectId = editions[0].id
@@ -430,6 +443,10 @@ class NemoFormulae(Nemo):
         else:
             notes = ''
         prev, next = self.get_siblings(objectId, subreference, text)
+        text_parallels = list()
+        if objectId in self.parallel_texts and subreference in self.parallel_texts[objectId]:
+            for p in self.parallel_texts[objectId][subreference]:
+                text_parallels.append((p[0], p[1], ' '.join([str(self.get_collection(p[0]).metadata.get_single(DC.title, lang=lang)), p[1]])))
         # if current_user.project_team is False and str(text.get_creator(lang)) not in self.OPEN_COLLECTIONS:
         #     pdf_path = self.pdf_folder + objectId.split(':')[-1] + '.pdf'
         return {
@@ -447,7 +464,8 @@ class NemoFormulae(Nemo):
                     "description": text.get_description(lang),
                     "citation": collection.citation,
                     "coins": self.make_coins(collection, text, subreference, lang=lang),
-                    'lang': collection.lang
+                    'lang': collection.lang,
+                    'parallels': text_parallels
                 },
                 "parents": self.make_parents(collection, lang=lang)
             },
@@ -529,6 +547,8 @@ class NemoFormulae(Nemo):
     def r_get_snippet(self, objectId: str, subreference: str):
         data = self.r_passage(objectId=objectId, subreference=subreference)
         data['template'] = 'main::source_collapse.html'
+        if 'cjhnt:nt' in objectId:
+            data['template'] = 'main::commentary_nt.html'
         return data
 
     def convert_result_sents(self, sents):

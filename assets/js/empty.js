@@ -37,6 +37,25 @@ $(document).ready(function () {
 
     $('#source-collapse0').collapse({toggle: false})
 
+    $('.nt-source-text').each(function(i, origElem) {
+        var urn = $(origElem).attr('source-text');
+        var target = $(origElem).attr('source-verse')
+        var request = new XMLHttpRequest();
+        request.onreadystatechange = function() {
+            if (this.readyState == 4) {
+                if (this.status == 200) {
+                    $(origElem).html(this.responseText);
+                    console.log(this.responseText)
+                } else {
+                    alert("Passage " + urn + ':' + target + " not found")
+                }
+            }
+        };
+        request.open('GET', '/snippet/' + urn + '/subreference/' + target, true);
+        request.send()
+    }
+    )
+
     $('.source-button').on("click", function() {
         var collapseTarget = $(this).attr('data-target');
         var currentId = $(this).attr('id');
