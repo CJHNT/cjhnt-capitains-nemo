@@ -26,3 +26,4 @@ class Config(object):
     SAVE_REQUESTS = False
     CACHE_MAX_AGE = os.environ.get('VARNISH_MAX_AGE') or 0 # This doesn't need to be set locally.
     TEXT_PARALLELS = os.environ.get('TEXT_PARALLELS') or [os.path.join(x, 'text_parallels.json') for x in CORPUS_FOLDERS]
+    NT_COMMENTARY_SECTIONS = os.environ.get('NT_COMMENTARY_SECTIONS') or [os.path.join(x, 'nt_commentary_sections.json') for x in CORPUS_FOLDERS]

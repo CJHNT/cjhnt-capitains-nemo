@@ -1,0 +1,8 @@
+{% for c in commentaries %}
+{% if loop.index == 1 %}<p class="section-label">{{ _('Kommentare') }}</p>{% endif %}
+- <a href="{{url_for('InstanceNemo.r_multipassage', objectIds=c.all_texts, subreferences=c.all_reffs) }}">{{ c.title }}</a> {{c.header}}<br>
+{% endfor %}
+{% for a in ancient %}
+{% if loop.index == 1 %}<br><p class="section-label">{{ _('Antike Texte') }}</p>{% endif %}
+- <a href="{{url_for('InstanceNemo.r_multipassage', objectIds=a.all_texts, subreferences=a.all_reffs) }}">{{ a.title }}</a> {{a.header}}<br>
+{% endfor %}

@@ -435,3 +435,26 @@ nav .dropdown:hover .dropdown-menu {
 seg.urn {
     text-decoration: underline dashed;
 }
+
+p.section-label {
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.nt-source-text {
+    text-align: center;
+}
+
+span.cited-word {
+    text-decoration: underline;
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+span.commentary-word {
+    text-decoration: underline;
+}
+
+.popover {
+    max-width: 100%;
+}

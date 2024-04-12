@@ -59,6 +59,9 @@
                 <xsl:attribute name="onmouseover">showLemma(this)</xsl:attribute>
                 <xsl:attribute name="onmouseout">hideLemma()</xsl:attribute>
             </xsl:if>
+            <xsl:if test="@n">
+                <xsl:attribute name="wordnum"><xsl:value-of select="@n"/></xsl:attribute>
+            </xsl:if>
             <xsl:if test="parent::t:seg[@type='font-style:underline;']">
                 <xsl:attribute name="data-lexicon"><xsl:value-of select="@lemmaRef"/></xsl:attribute>
                 <xsl:attribute name="onclick">showLexEntry(this)</xsl:attribute>
@@ -89,6 +92,7 @@
         <xsl:text>commentary lang_</xsl:text>
         <xsl:value-of select="@xml:lang"/>
       </xsl:attribute>
+      <xsl:attribute name="urn"><xsl:value-of select="@n"/></xsl:attribute>
       
       
       <xsl:apply-templates/>
@@ -108,6 +112,7 @@
                     <xsl:text>rtl</xsl:text>
                 </xsl:attribute>
             </xsl:if>
+            <xsl:attribute name="urn"><xsl:value-of select="@n"/></xsl:attribute>
             <xsl:apply-templates/>
         </div>
     </xsl:template>
@@ -138,8 +143,8 @@
                 <xsl:when test="child::t:l">
                     <ol><xsl:apply-templates /></ol>
                 </xsl:when>
-                <xsl:when test="@subtype='verse'">
-                    <seg class="nt-cit"><xsl:value-of select="concat(parent::t:div[@subtype='chapter']/@n, ',', @n)"/>: </seg>
+                <xsl:when test="not(descendant::t:div[@type='textpart'])">
+                    <seg class="nt-cit"><xsl:for-each select="parent::t:div[@type='textpart']"><xsl:value-of select="@n"/><xsl:text>,</xsl:text></xsl:for-each><xsl:value-of select="@n"/>: </seg>
                     <xsl:apply-templates />
                 </xsl:when>
                 <xsl:otherwise>
@@ -214,18 +219,19 @@
     </xsl:template>
     
     <xsl:template match="t:head">
-        <xsl:element name="seg">
+        <xsl:if test="@type = 'cjh-Überschrift-1' or @type = 'cjh-Überschrift-2'">                
+            <xsl:element name="p">
+                <xsl:attribute name="class">nt-source-text</xsl:attribute>
+                <xsl:attribute name="source-text"><xsl:value-of select="substring-before(parent::t:div[@subtype='commentary_section']/@source, ';')"/></xsl:attribute>
+                <xsl:attribute name="source-verse"><xsl:value-of select="substring-before(substring-after(parent::t:div[@subtype='commentary_section']/@source, ';'), ';')"/></xsl:attribute>
+                <xsl:attribute name="source-words"><xsl:value-of select="substring-after(substring-after(parent::t:div[@subtype='commentary_section']/@source, ';'), ';')"/></xsl:attribute>
+            </xsl:element>
+        </xsl:if>
+        <xsl:element name="p">
             <xsl:attribute name="class"><xsl:value-of select="@type"/></xsl:attribute>
             <xsl:apply-templates />
             <xsl:apply-templates select="@urn" />
-        </xsl:element>        
-        <xsl:if test="@type = 'cjh-Überschrift-1' or @type = 'cjh-Überschrift-2'">                
-            <xsl:element name="seg">
-                <xsl:attribute name="class">nt-source-text</xsl:attribute>
-                <xsl:attribute name="source-text"><xsl:value-of select="substring-before(parent::t:div[@subtype='commentary_section']/@source, ';')"/></xsl:attribute>
-                <xsl:attribute name="source-verse"><xsl:value-of select="substring-after(parent::t:div[@subtype='commentary_section']/@source, ';')"/></xsl:attribute>
-            </xsl:element>
-        </xsl:if>
+        </xsl:element>
     </xsl:template>
     
     <xsl:template match="@urn">
@@ -399,6 +405,13 @@
         <li>
             <xsl:apply-templates/>
         </li>
+    </xsl:template>
+    
+    <xsl:template match="t:label">
+        <xsl:element name="p">
+            <xsl:attribute name="class">section-label</xsl:attribute>
+            <xsl:apply-templates/>
+        </xsl:element>
     </xsl:template>
     
 </xsl:stylesheet>

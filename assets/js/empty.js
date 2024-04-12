@@ -39,13 +39,16 @@ $(document).ready(function () {
 
     $('.nt-source-text').each(function(i, origElem) {
         var urn = $(origElem).attr('source-text');
-        var target = $(origElem).attr('source-verse')
+        var target = $(origElem).attr('source-verse');
+        var words = $(origElem).attr('source-words');
+        if ( words ) {
+            target = target + '?words=' + words
+        }
         var request = new XMLHttpRequest();
         request.onreadystatechange = function() {
             if (this.readyState == 4) {
                 if (this.status == 200) {
                     $(origElem).html(this.responseText);
-                    console.log(this.responseText)
                 } else {
                     alert("Passage " + urn + ':' + target + " not found")
                 }
@@ -82,6 +85,48 @@ $(document).ready(function () {
         }
     }
     )
+
+    $('.commentary-word').on('shown.bs.popover', function() {
+        var popElement = '#' + $(this).attr('aria-describedby');
+        var urns = $(this).attr('comm-passages');
+        var request = new XMLHttpRequest();
+        request.onreadystatechange = function() {
+            if (this.readyState == 4) {
+                if (this.status == 200) {
+                    $(popElement).children('.popover-body').html(this.responseText);
+                } else {
+                    alert("Something went wrong trying to process " + urns)
+                }
+            }
+        };
+        request.open('GET', '/related/' + urns, true);
+        request.send()
+    })
+
+    /* $('.commentary-word').on('shown.bs.popover', function() {
+        var popElement = '#' + $(this).attr('aria-describedby');
+        var comm_urns = $(this).attr('comm-passages').split('%');
+        var comm_passages = [];
+        comm_passages = $.makeArray(comm_passages);
+        comm_urns.forEach(function(comm_urn) {
+            var urn = comm_urn.split(';')[0]
+            var target = comm_urn.split(';')[1]
+            var request = new XMLHttpRequest();
+            request.onreadystatechange = function() {
+                if (this.readyState == 4) {
+                    if (this.status == 200) {
+                        comm_passages.push(this.responseText)
+                    } else {
+                        alert("Passage " + urn + ':' + target + " not found")
+                    }
+                }
+            };
+            request.open('GET', '/snippet/' + urn + '/subreference/' + target + '?source=ntPassage', true);
+            request.send()
+        });
+        console.log(comm_passages);
+        $(popElement).children('.popover-body').html(comm_passages);
+    }) */
 });
 
 function hideNotes(c) {

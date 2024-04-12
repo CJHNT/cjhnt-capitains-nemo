@@ -39,7 +39,8 @@ class NemoFormulae(Nemo):
         ("/imprint", "r_impressum", ["GET"]),
         ("/nt_com/<objectIds>/passage/<subreferences>", "r_commentary_view", ['GET']),
         ("/text/<objectId>/passage", "r_first_passage", ["GET"]),
-        ("/snippet/<objectId>/subreference/<subreference>", "r_get_snippet", ["GET"])
+        ("/snippet/<objectId>/subreference/<subreference>", "r_get_snippet", ["GET"]),
+        ("/related/<objectIds>", "r_get_related_texts", ["GET"])
     ]
     SEMANTIC_ROUTES = [
         "r_collection", "r_references", "r_multipassage"
@@ -87,18 +88,19 @@ class NemoFormulae(Nemo):
         self.app.register_error_handler(500, e_internal_error)
         self.app.before_request(self.before_request)
         self.app.after_request(self.after_request)
-        self.parallel_texts = self.make_parallel_texts()
+        self.parallel_texts = self.load_external_json('TEXT_PARALLELS')
+        self.nt_commentary_sections = self.load_external_json('NT_COMMENTARY_SECTIONS')
     
-    def make_parallel_texts(self) -> dict:
+    def load_external_json(self, config_var: str) -> dict:
         """ Ingests an existing JSON file that contains notes about specific manuscript transcriptions"""
-        for j in self.app.config['TEXT_PARALLELS']:
+        for j in self.app.config[config_var]:
             with open(j) as f:
                 try:
-                    text_parallel_file = json_load(f)
+                    json_dict = json_load(f)
                 except JSONDecodeError:
                     self.app.logger.warning(j + ' is not a valid JSON file. Unable to load valid collected collections from it.')
                     continue
-        return text_parallel_file
+        return json_dict
 
     def get_all_corpora(self):
         """ A convenience function to return all sub-corpora in all collections
@@ -438,6 +440,8 @@ class NemoFormulae(Nemo):
             flash('{}.{}'.format(collection.get_label(lang), subreference) + _l(' wurde nicht gefunden. Der ganze Text wird angezeigt.'))
             subreference = new_subref
         passage = self.transform(text, text.export(Mimetypes.PYTHON.ETREE), objectId)
+        if 'cjhnt:nt' in objectId:
+            passage = self.nt_commentary_link(objectId, subreference, passage)
         if 'notes' in self._transform:
             notes = self.extract_notes(passage)
         else:
@@ -515,6 +519,26 @@ class NemoFormulae(Nemo):
             flash(_('Mindestens ein Text, den Sie anzeigen möchten, ist nicht verfügbar.'))
         return passage_data
 
+    def nt_commentary_link(self, objectId: str, subreference: str, passage:str):
+        """ Mark up the NT passages with their links to the commentaries
+        """
+        sub_ref_parts = subreference.split('.')
+        passage_xml = etree.XML(passage)
+        if len(sub_ref_parts) == 2:
+            for w_num, comm_passages in self.nt_commentary_sections[objectId][sub_ref_parts[0]][sub_ref_parts[1]].items():
+                if comm_passages:
+                    xml_word = passage_xml.xpath('//span[@wordnum="{}"]'.format(w_num))[0]
+                    xml_word.set('class', xml_word.get('class') + ' commentary-word')
+                    xml_word.set('comm-passages', '%'.join([';'.join(x) for x in comm_passages]))
+                    # xml_word.set('data-content', '%'.join([';'.join(x) for x in comm_passages]))
+                    xml_word.set('data-container', 'body')
+                    xml_word.set('data-toggle', 'popover')
+                    xml_word.set('data-placement', 'bottom')
+                    xml_word.set('title', 'Passages related to this word')
+                    xml_word.set('data-trigger', 'focus')
+                    xml_word.set('tabindex', '0')
+        return Markup(etree.tostring(passage_xml, pretty_print=True, encoding=str))
+    
     def r_commentary_view(self, objectIds, subreferences, lang=None, result_sents=''):
         """ Retrieve the appropriate NT passage as well as the commentary section(s) that go with it
 
@@ -546,7 +570,6 @@ class NemoFormulae(Nemo):
     
     def r_get_snippet(self, objectId: str, subreference: str):
         data = self.r_passage(objectId=objectId, subreference=subreference)
-        print(objectId)
         data['template'] = 'main::source_collapse.html'
         translation_id = re.sub(r'grc(?=\d+)', 'eng', objectId)
         if translation_id != objectId:
@@ -559,7 +582,38 @@ class NemoFormulae(Nemo):
             data["translation_passage"] = ''
         if 'cjhnt:nt' in objectId:
             data['template'] = 'main::commentary_nt.html'
+            if request.args.get('words', None):
+                passage_xml = etree.XML(data['text_passage'])
+                word_range = [int(x) for x in request.args.get('words').split('-')]
+                if len(word_range) == 2:
+                    word_range = range(word_range[0], word_range[1] + 1)
+                for word in passage_xml.xpath('//span[@class="w"]'):
+                    if int(word.get('wordnum')) in word_range:
+                        word.set('class', word.get('class') + ' cited-word')
+                data['text_passage'] = Markup(etree.tostring(passage_xml, pretty_print=True, encoding=str))
+        if request.args.get('source') == 'ntPassage':
+            data['template'] = 'main::commentary_popover.html'
         return data
+    
+    def r_get_related_texts(self, objectIds: str):
+        """ Return snippets of all commentary and early Jewish texts that are somehow related to an NT word
+        """
+        referring_text_refs = re.search(r'.*texts/(.*)/passage/([\d\w\.\-\+]+).*', request.referrer)
+        passages = {'commentaries': [], 'ancient': [], 'template': 'main::commentary_popover.html'}
+        for urn_reference in objectIds.split('%'):
+            objectId, subreference = urn_reference.split(';')
+            data = self.r_passage(objectId=objectId, subreference=subreference)
+            passage_xml = etree.XML(data['text_passage'])
+            if 'commentary' in objectId:
+                header = passage_xml.xpath('//*[@class="cjh-Überschrift-2" or @class="cjh-Überschrift-1"]/text()')[0]
+                passages['commentaries'].append({'title': data['collections']['current']['label'], 'header': header, 'subref': subreference, 'all_texts': '+'.join([referring_text_refs[1], objectId]), 'all_reffs': '+'.join([referring_text_refs[2], subreference])})
+            else:
+                print(etree.tostring(passage_xml))
+                header = ''.join(passage_xml.xpath('//text()'))
+                if len(header.split()) > 5:
+                    header = ' '.join(header.split()[:6]) + '...'
+                passages['ancient'].append({'title': data['collections']['current']['label'], 'header': header, 'subref': subreference, 'all_texts': '+'.join([referring_text_refs[1], objectId]), 'all_reffs': '+'.join([referring_text_refs[2], subreference])})
+        return passages
 
     def convert_result_sents(self, sents):
         """ Remove extraneous markup and punctuation from the result_sents returned from the search page
