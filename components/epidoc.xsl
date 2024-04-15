@@ -189,10 +189,10 @@
         </p>
     </xsl:template>
     
-    <xsl:template match="t:p[@n='source-text']"/>
+    <xsl:template match="t:p[contains(@n, 'source-text')]"/>
     
     
-    <xsl:template match="t:p[@n='source-text']" mode="show">
+    <xsl:template match="t:p[contains(@n, 'source-text')]" mode="show">
         <xsl:apply-templates select="@urn" />
         <xsl:apply-templates/>
     </xsl:template>
@@ -447,10 +447,14 @@
             <xsl:attribute name="id">witness-text-collapse<xsl:value-of select="$prev-styles"/></xsl:attribute>
             <div class="card card-body">
                 <xsl:for-each select="./following-sibling::t:p[not(@style='cjh-Überschrift-3') and count(preceding::t:p[@style='cjh-Überschrift-3'])=$prev-styles+1 and count(preceding::t:label)=$prev-labels]">
-                    <p><xsl:attribute name="class"><xsl:value-of select="@style"/></xsl:attribute><xsl:apply-templates/></p>
+                    <p><xsl:attribute name="class"><xsl:value-of select="@style"/><xsl:text> </xsl:text><xsl:value-of select="@n"/></xsl:attribute><xsl:apply-templates/></p>
                 </xsl:for-each>
             </div>
         </div>
+    </xsl:template>
+    
+    <xsl:template match="t:seg[@type='note-num']">
+        <sup><xsl:apply-templates/></sup>
     </xsl:template>
     
 </xsl:stylesheet>

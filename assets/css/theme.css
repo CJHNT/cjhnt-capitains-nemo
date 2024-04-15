@@ -495,3 +495,7 @@ span.commentary-word {
     font-size: large;
     padding-left: 8px;
 }
+
+.source-explanation {
+    font-size: smaller;
+}
