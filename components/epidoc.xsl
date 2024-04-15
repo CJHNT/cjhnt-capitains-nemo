@@ -182,12 +182,31 @@
             <xsl:apply-templates/>
     </xsl:template>
     
-    <xsl:template match="t:p">
+    <xsl:template match="t:p[not(@n='source-text')]">
         <p>
             <xsl:apply-templates select="@urn" />
             <xsl:apply-templates/>
         </p>
-    </xsl:template>    
+    </xsl:template>
+    
+    <xsl:template match="t:p[@n='source-text']"/>
+    
+    
+    <xsl:template match="t:p[@n='source-text']" mode="show">
+        <xsl:apply-templates select="@urn" />
+        <xsl:apply-templates/>
+    </xsl:template>
+    
+    <xsl:template match="t:p[@style='cjh-Überschrift-4']"/>
+    
+    
+    <xsl:template match="t:p[@style='cjh-Überschrift-4']" mode="show">
+        <xsl:element name="p">
+            <xsl:attribute name="class">cjh-Überschrift-4</xsl:attribute>
+            <xsl:apply-templates select="@urn" />
+            <xsl:apply-templates mode="show"/>
+        </xsl:element>
+    </xsl:template>
     
     <xsl:template match="t:lb" />
     
@@ -414,4 +433,25 @@
         </xsl:element>
     </xsl:template>
     
+    <xsl:template match="t:p[@style='cjh-Überschrift-3']">
+        <xsl:variable name="prev-styles" select="count(preceding::t:p[@style='cjh-Überschrift-3'])"/>
+        <xsl:variable name="prev-labels" select="count(preceding::t:label)"/>
+        <p>
+            <button class="btn btn-link" data-toggle="collapse" aria-expanded="false" aria-controls="collapseExample">
+                <xsl:attribute name="data-target">#witness-text-collapse<xsl:value-of select="$prev-styles"/></xsl:attribute>
+                <xsl:attribute name="aria-controls">witness-text-collapse<xsl:value-of select="$prev-styles"/></xsl:attribute>
+                <xsl:apply-templates/>
+            </button>            
+        </p>
+        <div class="collapse">
+            <xsl:attribute name="id">witness-text-collapse<xsl:value-of select="$prev-styles"/></xsl:attribute>
+            <div class="card card-body">
+                <xsl:for-each select="./following-sibling::t:p[not(@style='cjh-Überschrift-3') and count(preceding::t:p[@style='cjh-Überschrift-3'])=$prev-styles+1 and count(preceding::t:label)=$prev-labels]">
+                    <p><xsl:attribute name="class"><xsl:value-of select="@style"/></xsl:attribute><xsl:apply-templates/></p>
+                </xsl:for-each>
+            </div>
+        </div>
+    </xsl:template>
+    
 </xsl:stylesheet>
+
