@@ -475,3 +475,23 @@ span.commentary-word {
 .popover {
     max-width: 100%;
 }
+
+.witness-text-collapse {
+    color: black;
+}
+
+.witness-text-collapse::after {
+    content: "▾";
+    font-size: large;
+    padding-left: 8px;
+}
+
+.source-button {
+    color: black;
+}
+
+.source-button::after {
+    content: "▾";
+    font-size: large;
+    padding-left: 8px;
+}

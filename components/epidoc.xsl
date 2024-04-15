@@ -437,7 +437,7 @@
         <xsl:variable name="prev-styles" select="count(preceding::t:p[@style='cjh-Überschrift-3'])"/>
         <xsl:variable name="prev-labels" select="count(preceding::t:label)"/>
         <p>
-            <button class="btn btn-link" data-toggle="collapse" aria-expanded="false" aria-controls="collapseExample">
+            <button class="btn btn-link witness-text-collapse" data-toggle="collapse" aria-expanded="false">
                 <xsl:attribute name="data-target">#witness-text-collapse<xsl:value-of select="$prev-styles"/></xsl:attribute>
                 <xsl:attribute name="aria-controls">witness-text-collapse<xsl:value-of select="$prev-styles"/></xsl:attribute>
                 <xsl:apply-templates/>
