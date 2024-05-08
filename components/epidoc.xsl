@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0" xmlns:t="http://www.tei-c.org/ns/1.0" exclude-result-prefixes="t">
     
-    <!--<xsl:strip-space elements="t:p" />-->
+    <xsl:strip-space elements="*" />
+    <xsl:output omit-xml-declaration="yes" indent="yes"/>
         
     <!-- glyphs -->
     <xsl:template name="split-refs">
@@ -182,34 +183,7 @@
             <xsl:apply-templates/>
     </xsl:template>
     
-    <xsl:template match="t:p[not(@n='source-text')]">
-        <p>
-            <xsl:apply-templates select="@urn" />
-            <xsl:apply-templates/>
-        </p>
-    </xsl:template>
-    
-    <xsl:template match="t:p[contains(@n, 'source-text')]"/>
-    
-    
-    <xsl:template match="t:p[contains(@n, 'source-text')]" mode="show">
-        <xsl:apply-templates select="@urn" />
-        <xsl:apply-templates/>
-    </xsl:template>
-    
-    <xsl:template match="t:p[@style='cjh-Überschrift-4']"/>
-    
-    
-    <xsl:template match="t:p[@style='cjh-Überschrift-4']" mode="show">
-        <xsl:element name="p">
-            <xsl:attribute name="class">cjh-Überschrift-4</xsl:attribute>
-            <xsl:apply-templates select="@urn" />
-            <xsl:apply-templates mode="show"/>
-        </xsl:element>
-    </xsl:template>
-    
     <xsl:template match="t:lb" />
-    
     
     <xsl:template match="t:ex">
         <span class="ex">
@@ -235,22 +209,6 @@
             </xsl:choose>
             
         </span>
-    </xsl:template>
-    
-    <xsl:template match="t:head">
-        <xsl:if test="@type = 'cjh-Überschrift-1' or @type = 'cjh-Überschrift-2'">                
-            <xsl:element name="p">
-                <xsl:attribute name="class">nt-source-text</xsl:attribute>
-                <xsl:attribute name="source-text"><xsl:value-of select="substring-before(parent::t:div[@subtype='commentary_section']/@source, ';')"/></xsl:attribute>
-                <xsl:attribute name="source-verse"><xsl:value-of select="substring-before(substring-after(parent::t:div[@subtype='commentary_section']/@source, ';'), ';')"/></xsl:attribute>
-                <xsl:attribute name="source-words"><xsl:value-of select="substring-after(substring-after(parent::t:div[@subtype='commentary_section']/@source, ';'), ';')"/></xsl:attribute>
-            </xsl:element>
-        </xsl:if>
-        <xsl:element name="p">
-            <xsl:attribute name="class"><xsl:value-of select="@type"/></xsl:attribute>
-            <xsl:apply-templates />
-            <xsl:apply-templates select="@urn" />
-        </xsl:element>
     </xsl:template>
     
     <xsl:template match="@urn">
@@ -368,31 +326,6 @@
     
     <xsl:template match="t:app"/>
     
-    <xsl:template match="t:ref">
-        <button class="source-button btn btn-link" aria-expanded="false">
-            <xsl:attribute name="target">
-                <xsl:value-of select="@target"/>
-            </xsl:attribute>
-            <xsl:attribute name="urn">
-                <xsl:value-of select="@cRef"/>
-            </xsl:attribute>
-            <xsl:attribute name="id">source-button<xsl:value-of select="count(preceding::t:ref)"/></xsl:attribute>
-            <xsl:attribute name="data-target">#source-collapse<xsl:value-of select="count(preceding::t:p[@n='quellen'])"/></xsl:attribute>
-            <xsl:attribute name="aria-controls">source-collapse<xsl:value-of select="count(preceding::t:p[@n='quellen'])"/></xsl:attribute>
-            <xsl:value-of select="." />
-        </button>
-    </xsl:template>
-    
-    <xsl:template match="t:p[@n='quellen']">
-        <p>
-            <xsl:apply-templates/>
-            <xsl:element name="div">
-                <xsl:attribute name="class">collapse source-collapse</xsl:attribute>
-                <xsl:attribute name="id">source-collapse<xsl:value-of select="count(preceding::t:p[@n='quellen'])"/></xsl:attribute>
-            </xsl:element>
-        </p>
-    </xsl:template>
-    
     <xsl:template match="t:choice">
         <span class="choice">
             <xsl:attribute name="title">
@@ -426,36 +359,98 @@
         </li>
     </xsl:template>
     
-    <xsl:template match="t:label">
-        <xsl:element name="p">
-            <xsl:attribute name="class">section-label</xsl:attribute>
-            <xsl:apply-templates/>
-        </xsl:element>
-    </xsl:template>
-    
-    <xsl:template match="t:p[@style='cjh-Überschrift-3']">
-        <xsl:variable name="prev-styles" select="count(preceding::t:p[@style='cjh-Überschrift-3'])"/>
-        <xsl:variable name="prev-labels" select="count(preceding::t:label)"/>
+    <xsl:template match="t:div[@type='beleg-gruppe']">
+        <xsl:variable name="prev-styles" select="count(preceding::t:div[@type='beleg-gruppe'])"/>
         <p>
             <button class="btn btn-link witness-text-collapse" data-toggle="collapse" aria-expanded="false">
                 <xsl:attribute name="data-target">#witness-text-collapse<xsl:value-of select="$prev-styles"/></xsl:attribute>
                 <xsl:attribute name="aria-controls">witness-text-collapse<xsl:value-of select="$prev-styles"/></xsl:attribute>
-                <xsl:apply-templates/>
+                <xsl:value-of select="t:head[@type='cjh-Überschrift-3']"/>
             </button>            
         </p>
         <div class="collapse">
             <xsl:attribute name="id">witness-text-collapse<xsl:value-of select="$prev-styles"/></xsl:attribute>
             <div class="card card-body">
-                <xsl:for-each select="./following-sibling::t:p[not(@style='cjh-Überschrift-3') and count(preceding::t:p[@style='cjh-Überschrift-3'])=$prev-styles+1 and count(preceding::t:label)=$prev-labels]">
-                    <p><xsl:attribute name="class"><xsl:value-of select="@style"/><xsl:text> </xsl:text><xsl:value-of select="@n"/></xsl:attribute><xsl:apply-templates/></p>
-                </xsl:for-each>
+                <xsl:apply-templates/>
             </div>
         </div>
     </xsl:template>
     
-    <xsl:template match="t:seg[@type='note-num']">
-        <sup><xsl:apply-templates/></sup>
+    <xsl:template match="t:ref[@type='erläuterungPointer']">
+        <sup>
+            <xsl:attribute name="target"><xsl:value-of select="@target"/></xsl:attribute>
+            <xsl:apply-templates/>
+        </sup>
     </xsl:template>
+    
+    <xsl:template match="t:note[@type='zitatErläuterung']">
+        <seg>
+            <xsl:attribute name="xml:id"><xsl:value-of select="@xml:id"/></xsl:attribute>
+            <sup><xsl:value-of select="@n"/></sup>
+            <xsl:apply-templates/>
+        </seg>
+    </xsl:template>
+    
+    <xsl:template match="t:seg[@type='belegstelle']">
+        <button class="source-button btn btn-link" aria-expanded="false">
+            <xsl:attribute name="target">
+                <xsl:value-of select="@target"/>
+            </xsl:attribute>
+            <xsl:attribute name="urn">
+                <xsl:value-of select="@cRef"/>
+            </xsl:attribute>
+            <xsl:attribute name="id">source-button<xsl:value-of select="count(preceding::t:seg[@type='belegstelle'])"/></xsl:attribute>
+            <xsl:attribute name="data-target">#source-collapse<xsl:value-of select="count(preceding::t:div[@type='sectionB'])"/></xsl:attribute>
+            <xsl:attribute name="aria-controls">source-collapse<xsl:value-of select="count(preceding::t:div[@type='sectionB'])"/></xsl:attribute>
+            <xsl:value-of select="." />
+        </button>
+    </xsl:template>
+    
+    <xsl:template match="t:div[@type='sectionB']">
+        <p>
+            <xsl:apply-templates/>
+            <xsl:element name="div">
+                <xsl:attribute name="class">collapse source-collapse</xsl:attribute>
+                <xsl:attribute name="id">source-collapse<xsl:value-of select="count(preceding::t:p[@n='quellen'])"/></xsl:attribute>
+            </xsl:element>
+        </p>
+    </xsl:template>
+    
+    <xsl:template match="t:head">
+        <xsl:if test="@type = 'cjh-Überschrift-1' or @type = 'cjh-Überschrift-2'">                
+            <xsl:element name="p">
+                <xsl:attribute name="class">nt-source-text</xsl:attribute>
+                <xsl:attribute name="source-text"><xsl:value-of select="substring-before(parent::t:div[@subtype='commentary_section']/@source, ';')"/></xsl:attribute>
+                <xsl:attribute name="source-verse"><xsl:value-of select="substring-before(substring-after(parent::t:div[@subtype='commentary_section']/@source, ';'), ';')"/></xsl:attribute>
+                <xsl:attribute name="source-words"><xsl:value-of select="substring-after(substring-after(parent::t:div[@subtype='commentary_section']/@source, ';'), ';')"/></xsl:attribute>
+            </xsl:element>
+        </xsl:if>
+        <xsl:element name="p">
+            <xsl:attribute name="class"><xsl:value-of select="@type"/></xsl:attribute>
+            <xsl:apply-templates />
+            <xsl:apply-templates select="@urn" />
+        </xsl:element>
+    </xsl:template>
+    
+    <xsl:template match="t:p[not(@n='source-text')]">
+        <p>
+            <xsl:apply-templates select="@urn" />
+            <xsl:apply-templates/>
+        </p>
+    </xsl:template>
+    
+    <xsl:template match="t:p[contains(@n, 'source-text')]"/>
+    
+    <xsl:template match="t:p[contains(@n, 'source-text')]" mode="show">
+        <xsl:apply-templates select="@urn" />
+        <xsl:apply-templates/>
+    </xsl:template>
+    
+    <xsl:template match="t:div[@type='commentary']/t:div[@source]/t:div">
+        <div><xsl:attribute name="type"><xsl:value-of select="@type"/></xsl:attribute><xsl:apply-templates/></div>
+    </xsl:template>
+    
+    <xsl:template match="t:teiHeader"></xsl:template>
     
 </xsl:stylesheet>
 

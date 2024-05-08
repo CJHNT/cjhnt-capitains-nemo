@@ -44,7 +44,11 @@
             {% elif sub_colls|length == 0 %}
             <div class="col-xl-2 col-6">
                 <div class="card">
+                    {% if coll.readable %}
+                    <div class="card-header text-center pb-0"><h5><a class="card-link" href="{{url_for('InstanceNemo.r_multipassage', objectIds=[prev_texts, coll.id]|join_list_values('+'), subreferences=[prev_reffs, 'all']|join_list_values('+'))}}">{{ coll.label|title }}</a></h5></div>
+                    {% else %}
                     <div class="card-header text-center pb-0"><h5><a class="card-link" href="{{url_for(corp_route, objectId=coll.id, objectIds=prev_texts, reffs=prev_reffs, interface=interface)}}">{{ coll.label|title }}</a></h5></div>
+                    {% endif %}
                 </div>
             </div>
             {% else %}

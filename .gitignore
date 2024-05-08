@@ -43,3 +43,4 @@ cache/
 htmlcov/
 old_translations/
 .idea/
+.DS_Store

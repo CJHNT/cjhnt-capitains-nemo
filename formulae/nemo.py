@@ -306,6 +306,8 @@ class NemoFormulae(Nemo):
         data['interface'] = request.args.get('interface')
         new_members = []
         for member in sorted(data['collections']['members'], key=itemgetter('id')):
+            md = self.resolver.getMetadata(member['id'])
+            member['readable'] = md.readable
             new_members.append([member, self.make_members(self.resolver.getMetadata(member['id']), lang=lang)])
         data['collections']['members'] = new_members
         return data
