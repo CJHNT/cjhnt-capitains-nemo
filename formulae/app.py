@@ -1,9 +1,11 @@
 from MyCapytain.resolvers.capitains.local import XmlCapitainsLocalResolver
+from capitains_nautilus.flask_ext import FlaskNautilus
 from . import create_app
 from .nemo import NemoFormulae
 
 flask_app = create_app()
 resolver = XmlCapitainsLocalResolver(flask_app.config['CORPUS_FOLDERS'])
+nautilus_api = FlaskNautilus(prefix="/api", resolver=resolver, app=flask_app)
 
 nemo = NemoFormulae(
     name="InstanceNemo",

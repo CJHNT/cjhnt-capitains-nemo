@@ -1,7 +1,7 @@
 Werkzeug>=2.3.0,<3
-capitains-nautilus==1.0.2
 elasticsearch==6.3.0
 git+https://github.com/Capitains/MyCapytain@future#egg=MyCapytain
+git+https://github.com/Capitains/Nautilus@dev#egg=capitains-nautilus
 requests_cache==0.4.9
 Flask<3.0.0
 Flask-Caching>=1.2.0
