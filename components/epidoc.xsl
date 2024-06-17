@@ -365,7 +365,13 @@
             <button class="btn btn-link witness-text-collapse" data-toggle="collapse" aria-expanded="false">
                 <xsl:attribute name="data-target">#witness-text-collapse<xsl:value-of select="$prev-styles"/></xsl:attribute>
                 <xsl:attribute name="aria-controls">witness-text-collapse<xsl:value-of select="$prev-styles"/></xsl:attribute>
-                <xsl:value-of select="t:head[@type='cjh-Überschrift-3']"/>
+<!--                <xsl:value-of select="t:head[@type='cjh-Überschrift-3']"/>-->
+                <xsl:for-each select="t:head[@type='cjh-Überschrift-3']/node()">
+                    <xsl:choose>
+                        <xsl:when test="self::text()"><xsl:value-of select="."/></xsl:when>
+                        <xsl:otherwise><xsl:apply-templates select="."></xsl:apply-templates></xsl:otherwise>
+                    </xsl:choose>
+                </xsl:for-each>
             </button>            
         </p>
         <div class="collapse">
@@ -416,15 +422,18 @@
         </p>
     </xsl:template>
     
+    <xsl:template match="/t:TEI/t:text/t:body/t:div/t:div[@source]">
+        <xsl:element name="p">
+            <xsl:attribute name="class">nt-source-text</xsl:attribute>
+            <xsl:attribute name="source-text"><xsl:value-of select="substring-before(@source, ';')"/></xsl:attribute>
+            <xsl:attribute name="source-verse"><xsl:value-of select="substring-before(substring-after(@source, ';'), ';')"/></xsl:attribute>
+            <xsl:attribute name="source-words"><xsl:value-of select="substring-after(substring-after(@source, ';'), ';')"/></xsl:attribute>
+            Loading...
+        </xsl:element>
+        <xsl:apply-templates></xsl:apply-templates>
+    </xsl:template>
+    
     <xsl:template match="t:head">
-        <xsl:if test="@type = 'cjh-Überschrift-1' or @type = 'cjh-Überschrift-2'">                
-            <xsl:element name="p">
-                <xsl:attribute name="class">nt-source-text</xsl:attribute>
-                <xsl:attribute name="source-text"><xsl:value-of select="substring-before(parent::t:div[@subtype='commentary_section']/@source, ';')"/></xsl:attribute>
-                <xsl:attribute name="source-verse"><xsl:value-of select="substring-before(substring-after(parent::t:div[@subtype='commentary_section']/@source, ';'), ';')"/></xsl:attribute>
-                <xsl:attribute name="source-words"><xsl:value-of select="substring-after(substring-after(parent::t:div[@subtype='commentary_section']/@source, ';'), ';')"/></xsl:attribute>
-            </xsl:element>
-        </xsl:if>
         <xsl:element name="p">
             <xsl:attribute name="class"><xsl:value-of select="@type"/></xsl:attribute>
             <xsl:apply-templates />

@@ -118,23 +118,23 @@ def r_reset_password(token):
     return nemo.render(template='auth::reset_password.html', title=_('Passwort zurücksetzen'), form=form, url=dict())
 
 
-""" @bp.route("/register", methods=['GET', 'POST'])
-def r_register():
-    """ Route for new users to register for accounts
+# @bp.route("/register", methods=['GET', 'POST'])
+# def r_register():
+#     """ Route for new users to register for accounts
 
-    :return: template, form
-    """
-    from formulae.app import nemo
-    if current_user.is_authenticated:
-        return redirect(url_for('main:index'))
-    form = RegistrationForm()
-    if form.validate_on_submit():
-        user = User(username=form.username.data, email=form.email.data, default_locale=form.default_locale.data)
-        user.set_password(form.password.data)
-        db.session.add(user)
-        db.session.commit()
-        current_user.default_locale = form.default_locale.data
-        refresh()
-        flash(_('Sie sind nun registriert.'))
-        return redirect(url_for('auth.r_login'))
-    return nemo.render(template='auth::register.html', title=_('Anmelden'), form=form, url=dict()) """
+#     :return: template, form
+#     """
+#     from formulae.app import nemo
+#     if current_user.is_authenticated:
+#         return redirect(url_for('main:index'))
+#     form = RegistrationForm()
+#     if form.validate_on_submit():
+#         user = User(username=form.username.data, email=form.email.data, default_locale=form.default_locale.data)
+#         user.set_password(form.password.data)
+#         db.session.add(user)
+#         db.session.commit()
+#         current_user.default_locale = form.default_locale.data
+#         refresh()
+#         flash(_('Sie sind nun registriert.'))
+#         return redirect(url_for('auth.r_login'))
+#     return nemo.render(template='auth::register.html', title=_('Anmelden'), form=form, url=dict())

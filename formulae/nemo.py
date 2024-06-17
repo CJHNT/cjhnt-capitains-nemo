@@ -453,6 +453,7 @@ class NemoFormulae(Nemo):
             flash('{}.{}'.format(collection.get_label(lang), subreference) + _l(' wurde nicht gefunden. Der ganze Text wird angezeigt.'))
             subreference = new_subref
         passage = self.transform(text, text.export(Mimetypes.PYTHON.ETREE), objectId)
+        passage = passage.replace('span><span', 'span> <span')
         if 'cjhnt:nt' in objectId:
             passage = self.nt_commentary_link(objectId, subreference, passage)
         if 'notes' in self._transform:
