@@ -15,7 +15,6 @@
                 {{ _('Passwort Vergessen?') }}
                 <a href="{{ url_for('auth.r_reset_password_request') }}">{{ _('Klicken Sie hier, um ihr Passwort zurückzusetzen') }}</a>
             </p>
-            <p>{{ _('Noch kein Benutzerkonto?') }} <a href="{{ url_for('auth.r_register') }}">{{ _('Klicken Sie hier') }}</a></p>
             {% endif %}
         </div>
         {% endfor %}

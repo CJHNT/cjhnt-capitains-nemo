@@ -118,7 +118,7 @@ def r_reset_password(token):
     return nemo.render(template='auth::reset_password.html', title=_('Passwort zurücksetzen'), form=form, url=dict())
 
 
-@bp.route("/register", methods=['GET', 'POST'])
+""" @bp.route("/register", methods=['GET', 'POST'])
 def r_register():
     """ Route for new users to register for accounts
 
@@ -137,4 +137,4 @@ def r_register():
         refresh()
         flash(_('Sie sind nun registriert.'))
         return redirect(url_for('auth.r_login'))
-    return nemo.render(template='auth::register.html', title=_('Anmelden'), form=form, url=dict())
+    return nemo.render(template='auth::register.html', title=_('Anmelden'), form=form, url=dict()) """
