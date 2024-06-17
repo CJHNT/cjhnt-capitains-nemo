@@ -6,15 +6,33 @@
     <div class="collapse navbar-collapse" id="mainNavbar">
         <ul class="navbar-nav my-0 mr-auto">
             <li class="nav-item active">
+                <a class="nav-link" href="{{url_for('InstanceNemo.r_index')}}">Home</a>
+            </li>
+            <li class="nav-item active">
                 <a class="nav-link" href="https://www.theol.uni-leipzig.de/institut-fuer-neutestamentliche-wissenschaft/forschung/corpus-judaeo-hellenisticum-novi-testamenti-digital" target="_blank">{{ _('Über das Projekt') }}</a>
+            </li>
+            <li class="nav-item">
+                {% if current_user.is_anonymous %}
+                    <a class="nav-link" href="{{ url_for('auth.r_login') }}">{{ _('Einloggen') }}</a>
+                {% else %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle active" role="button" id="accountDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" href="#">{{ current_user.username }}</a>
+                        <div class="dropdown-menu" aria-labelledby="accountDropdown">
+                            <a class="dropdown-item" href="{{ url_for('auth.r_user', username=current_user.username) }}" id="profile-link" data-toggle="tooltip" data-container="#profile-link">{{ _('Benutzerprofil ändern') }}</a>
+                            <a class="dropdown-item" href="{{ url_for('auth.r_logout') }}">{{ _('Ausloggen') }}</a>
+                        </div>
+                    </li>
+                {% endif %}
             </li>
             <li class="nav-item active">
                 <a class="nav-link nav" href="{{url_for('InstanceNemo.r_collection', objectId='urn:cts:cjhnt:commentary', interface='commentary')}}">{{ _('Kommentarinterface') }}</a>
             </li>
             <li class="nav-item active">
                 <a class="nav-link" href="{{url_for('InstanceNemo.r_collections')}}">{{ _('Leseinterface') }}</a>
-            </li>      
+            </li>
         </ul>
-        {% include "search::search_box.html" %}
+        {% if current_user.is_authenticated %}
+            {% include "search::search_box.html" %}
+        {% endif %}  
     </div>
 </nav>

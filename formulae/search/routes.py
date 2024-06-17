@@ -9,7 +9,7 @@ from json import dumps
 
 
 @bp.route("/simple", methods=["GET"])
-# @login_required
+@login_required
 def r_simple_search():
     if not g.search_form.validate():
         for k, m in g.search_form.errors.items():
@@ -22,7 +22,7 @@ def r_simple_search():
 
 
 @bp.route("/results", methods=["GET"])
-# @login_required
+@login_required
 def r_results():
     from formulae.app import nemo
     source = request.args.get('source', None)
@@ -84,7 +84,7 @@ def r_results():
 
 
 @bp.route("/advanced_search", methods=["GET"])
-# @login_required
+@login_required
 def r_advanced_search():
     from formulae.app import nemo
     form = AdvancedSearchForm()
@@ -106,6 +106,7 @@ def r_advanced_search():
 
 
 @bp.route("/doc", methods=["GET"])
+@login_required
 def r_search_docs():
     """ Route to the documentation page for the advanced search"""
     from formulae.app import nemo
@@ -113,6 +114,7 @@ def r_search_docs():
 
 
 @bp.route("/suggest/<word>", methods=["GET"])
+@login_required
 def word_search_suggester(word):
     words = suggest_word_search(word, field=request.args.get('field', 'autocomplete'),
                                 fuzziness=request.args.get("fuzziness", "0"),

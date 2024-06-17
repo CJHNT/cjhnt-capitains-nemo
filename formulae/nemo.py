@@ -301,6 +301,12 @@ class NemoFormulae(Nemo):
             )
         abort(404)
 
+    @login_required
+    def r_collections(self, lang=None):
+        data = super(NemoFormulae, self).r_collections(lang=lang)
+        return data
+    
+    @login_required
     def r_collection(self, objectId, lang=None):
         data = super(NemoFormulae, self).r_collection(objectId, lang=lang)
         data['interface'] = request.args.get('interface')
@@ -312,6 +318,7 @@ class NemoFormulae(Nemo):
         data['collections']['members'] = new_members
         return data
 
+    @login_required
     def r_work(self, objectId, lang=None):
         """ Route to browse collections and add another text to the view
 
@@ -346,6 +353,7 @@ class NemoFormulae(Nemo):
             'interface': request.args.get('interface')
         }
 
+    @login_required
     def r_add_text_collections(self, objectIds, reffs, lang=None):
         """ Retrieve the top collections of the inventory
 
@@ -365,6 +373,7 @@ class NemoFormulae(Nemo):
             "prev_reffs": reffs
         }
 
+    @login_required
     def r_add_text_collection(self, objectId, objectIds, reffs, lang=None):
         """ Route to browse a top-level collection and add another text to the view
 
@@ -389,6 +398,7 @@ class NemoFormulae(Nemo):
             flash(_('Diese Sammlung steht unter Copyright und darf hier nicht gezeigt werden.'))"""
         return d
 
+    @login_required
     def r_add_text_work(self, objectId, objectIds, reffs, lang=None):
         """ Route to browse collections and add another text to the view
 
@@ -403,6 +413,7 @@ class NemoFormulae(Nemo):
         initial.update({'prev_texts': objectIds, 'prev_reffs': reffs, 'interface': 'reading'})
         return initial
 
+    @login_required
     def get_first_passage(self, objectId):
         """ Provides a redirect to the first passage of given objectId
 
@@ -484,6 +495,7 @@ class NemoFormulae(Nemo):
             "date": "{:04}-{:02}-{:02}".format(date.today().year, date.today().month, date.today().day)
         }
 
+    @login_required
     def r_multipassage(self, objectIds, subreferences, lang=None, result_sents=''):
         """ Retrieve the text of the passage
 
@@ -541,6 +553,7 @@ class NemoFormulae(Nemo):
                     xml_word.set('tabindex', '0')
         return Markup(etree.tostring(passage_xml, pretty_print=True, encoding=str))
     
+    @login_required
     def r_commentary_view(self, objectIds, subreferences, lang=None, result_sents=''):
         """ Retrieve the appropriate NT passage as well as the commentary section(s) that go with it
 
@@ -570,6 +583,7 @@ class NemoFormulae(Nemo):
             passage_data['comm_sections'].append(d)
         return passage_data
     
+    @login_required
     def r_get_snippet(self, objectId: str, subreference: str):
         data = self.r_passage(objectId=objectId, subreference=subreference)
         data['template'] = 'main::source_collapse.html'
@@ -597,6 +611,7 @@ class NemoFormulae(Nemo):
             data['template'] = 'main::commentary_popover.html'
         return data
     
+    @login_required
     def r_get_related_texts(self, objectIds: str):
         """ Return snippets of all commentary and early Jewish texts that are somehow related to an NT word
         """

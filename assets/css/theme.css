@@ -258,7 +258,7 @@ nav .dropdown:hover .dropdown-menu {
 }
 
 .navbar {
-    background-color: #3e6abe;
+    background-color: #027f42;
 }
 
 .navbar .navbar-logo {
@@ -394,6 +394,11 @@ nav .dropdown:hover .dropdown-menu {
     width: 75px;
 }
 
+#saw-logo-header {
+    height: 100px;
+    width: 107px;
+}
+
 #jena-logo-header {
     height: 103px;
     width: 100px;
@@ -498,4 +503,19 @@ span.commentary-word {
 
 .source-explanation {
     font-size: smaller;
+}
+
+#main-footer {
+    display: grid;
+    justify-content: center;
+    grid-template-columns: 65%;
+}
+
+#funding-text div {
+    width: 65%;
+    font-size: small;
+}
+
+#main-container {
+    min-height: 65%;
 }
