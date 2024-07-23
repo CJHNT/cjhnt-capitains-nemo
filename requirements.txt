@@ -1,5 +1,5 @@
 Werkzeug>=2.3.0,<3
-elasticsearch==6.3.0
+elasticsearch>=8.0.0
 git+https://github.com/Capitains/MyCapytain@future#egg=MyCapytain
 git+https://github.com/Capitains/Nautilus@dev#egg=capitains-nautilus
 requests_cache==0.4.9
